@@ -1,0 +1,30 @@
+import {createRequire} from 'node:module';
+import {mkdir,readFile,readdir,writeFile} from 'node:fs/promises';
+import {resolve,join} from 'node:path';
+import {fileURLToPath,pathToFileURL} from 'node:url';
+import assert from 'node:assert/strict';
+import {chromium} from 'playwright';
+const root=fileURLToPath(new URL('..',import.meta.url)),dir=join(root,'.local/agent-feedback-ui');
+const {build}=createRequire(new URL('../apps/web/package.json',import.meta.url))('esbuild');
+await mkdir(dir,{recursive:true});
+const entry=`import React from 'react';import {createRoot} from 'react-dom/client';import {ApiChat} from '../../apps/web/src/features/testing/ApiChat';
+window.corrections=[];window.sends=0;window.stops=0;window.failCorrection=false;
+createRoot(document.getElementById('root')).render(<main className="min-h-screen bg-canvas text-ink font-sans"><ApiChat inline projectId="feedback-test" projectName="測試" catalogId="" version="草稿" currentName="Email" pageName="案例撰寫" environmentId="" environmentName="" requestIds={[]} uiToken="test" page="requests" tab="body" editor={{method:'',endpoint:'',query:'',variables:'',params:'',body:'',assertions:''}} onOperate={async()=>({results:[]})} authoring={{send:async()=>{window.sends++;return new Promise(resolve=>window.finish=resolve);},correct:async(text)=>{if(window.failCorrection)throw new Error('修正未送達');window.corrections.push(text);},cancel:async()=>{window.stops++;window.finish('任務已停止');}}}/></main>);`;
+const built=await build({stdin:{contents:entry,resolveDir:dir,loader:'tsx'},nodePaths:[join(root,'apps/web/node_modules')],bundle:true,write:false,format:'iife',jsx:'automatic'});
+const assets=join(root,'apps/web/dist/assets'),cssName=(await readdir(assets)).find(s=>s.startsWith('index-')&&s.endsWith('.css'));
+const css=await readFile(join(assets,cssName),'utf8'),file=join(dir,'index.html');
+await writeFile(file,'<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Agent correction verification</title><style>'+css+'</style></head><body><div id="root"></div><script>'+built.outputFiles[0].text+'</script></body></html>');
+const browser=await chromium.launch({channel:'chrome'}).catch(()=>chromium.launch());
+try{
+ const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(pathToFileURL(file).href);const input=page.getByRole('textbox',{name:'傳送訊息'});
+ await input.fill('尋找 Email');await input.press('Enter');await page.waitForFunction(()=>window.sends===1);
+ assert.equal(await input.isEnabled(),true);
+ await input.fill('滑過頭，反向小幅滑動');await page.getByRole('button',{name:'傳送修正',exact:true}).click();
+ await page.waitForFunction(()=>window.corrections.length===1);assert.equal(await input.inputValue(),'');
+ await page.evaluate(()=>window.failCorrection=true);await input.fill('再縮小幅度');await input.press('Enter');await page.getByText('修正未送達',{exact:true}).waitFor();assert.equal(await input.inputValue(),'再縮小幅度');
+ await page.evaluate(()=>window.failCorrection=false);await input.press('Enter');await page.waitForFunction(()=>window.corrections.length===2);
+ assert.equal(await page.evaluate(()=>window.sends),1);
+ await page.getByRole('button',{name:'停止任務',exact:true}).click();await page.waitForFunction(()=>window.stops===1);
+ assert.deepEqual(errors,[]);console.log('Agent correction UI: PASS (send while running, failed delivery preserves text, retry, stop; no second task created)');
+}finally{await browser.close();}

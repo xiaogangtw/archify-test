@@ -1,0 +1,35 @@
+import {createRequire} from 'node:module';
+import {mkdir,readFile,readdir,writeFile} from 'node:fs/promises';
+import {join} from 'node:path';
+import {fileURLToPath,pathToFileURL} from 'node:url';
+import assert from 'node:assert/strict';
+import {chromium} from 'playwright';
+const root=fileURLToPath(new URL('..',import.meta.url)),dir=join(root,'.local/agent-autoverify-ui');
+await mkdir(dir,{recursive:true});
+const {build}=createRequire(new URL('../apps/web/package.json',import.meta.url))('esbuild');
+const entry=`import React from 'react';import {createRoot} from 'react-dom/client';import {TestingProvider} from '../../apps/web/src/features/testing/TestingProvider';import {ScriptWorkspace} from '../../apps/web/src/features/testing/ScriptWorkspace';import {bootstrap} from '../../apps/web/src/features/testing/controlApi';
+window.source='export const flow={appPackage:"jp.naver.line.android",steps:[{name:"確認前景",action:"assertAppForeground"}]} as const;';window.next='export const flow={appPackage:"jp.naver.line.android",steps:[{name:"確認前景",action:"assertAppForeground"},{name:"確認 LINE",action:"assertAppForeground"}]} as const;';window.requests=[];
+window.fetch=async(url,init={})=>{const path=String(url),body=init.body?JSON.parse(init.body):{};let data={};
+if(path.endsWith('/bootstrap'))data={documents:[],scripts:[],history:[]};else if(path.includes('/agent-tasks/latest'))data={task:null};else if(path.endsWith('/agent-tasks')&&init.method==='POST'){window.requests.push(body);data={id:'task',threadId:body.threadId,scriptVersion:1,state:'ready',baseSource:window.source,draft:{source:window.next,revision:1},events:[],revision:1,message:'重跑完成',verification:{source:window.next,status:'passed',message:'確認 LINE 位於前景'}};}else if(path.endsWith('/resolution'))data={};else if(path.includes('/scripts/')&&init.method==='PUT')data={...body,version:body.version+1};else if(path.endsWith('/runs'))data=[];
+return Response.json(data);};await bootstrap();createRoot(document.getElementById('root')).render(<main className="min-h-screen bg-canvas p-3 font-sans text-ink"><TestingProvider><ScriptWorkspace flowOnly deviceSerial="emulator-5554" initialScript={{id:'case',name:'完善資料',source:window.source,caseType:'flow',version:1,messages:[]}}/></TestingProvider></main>);`;
+const output=await build({stdin:{contents:entry,resolveDir:dir,loader:'tsx'},nodePaths:[join(root,'apps/web/node_modules')],bundle:true,write:false,format:'esm',jsx:'automatic',target:'es2022'});
+const assets=join(root,'apps/web/dist/assets'),name=(await readdir(assets)).find(x=>x.startsWith('index-')&&x.endsWith('.css'));
+const file=join(dir,'index.html');
+await writeFile(file,'<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Android auto verification</title><style>'+await readFile(join(assets,name),'utf8')+'</style></head><body><div id="root"></div><script type="module">'+output.outputFiles[0].text+'</script></body></html>');
+const browser=await chromium.launch({channel:'chrome'}).catch(()=>chromium.launch());
+try{
+ const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(pathToFileURL(file).href);
+ const input=page.getByRole('textbox',{name:'傳送訊息',exact:true});await input.waitFor();
+ assert.match(await input.getAttribute('placeholder'),/重跑驗證/);
+ await page.getByText('操作設定',{exact:true}).click();
+ const mode=page.getByRole('checkbox',{name:'讓 AI 操作手機、產生腳本並重跑驗證',exact:true});assert.equal(await mode.isChecked(),true);
+ await mode.uncheck();assert.doesNotMatch(await input.getAttribute('placeholder'),/重跑驗證/);await mode.check();
+ await input.fill('開啟 LINE 並確認前景，產生腳本後重跑');await page.getByRole('button',{name:'傳送訊息',exact:true}).click();
+ await page.getByText(/實際驗證：通過/).waitFor();
+ assert.equal(await page.evaluate(()=>window.requests[0].autoVerify),true);assert.equal(await page.evaluate(()=>window.requests[0].serial),'emulator-5554');
+ const preview=page.getByRole('region',{name:'AI 修改預覽'});await preview.getByRole('button',{name:'套用',exact:true}).click();
+ await preview.waitFor({state:'detached'});
+ assert.equal(await page.getByRole('textbox',{name:'TypeScript 程式碼',exact:true}).inputValue(),await page.evaluate(()=>window.next));
+ await page.getByRole('button',{name:'儲存案例',exact:true}).click();await page.getByText('已儲存 v2',{exact:true}).waitFor();assert.deepEqual(errors,[]);
+ console.log('PASS Android conversation: mode toggle, goal submission with autoVerify and phone, verified result, apply and save (mock server/model only).');
+}finally{await browser.close();}

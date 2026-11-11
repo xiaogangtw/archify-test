@@ -1,0 +1,98 @@
+import {createRequire} from 'node:module';
+import {mkdir,readFile,readdir,writeFile} from 'node:fs/promises';
+import {fileURLToPath,pathToFileURL} from 'node:url';
+import {join} from 'node:path';
+import assert from 'node:assert/strict';
+import {createServer} from 'node:http';
+
+const root=fileURLToPath(new URL('..',import.meta.url)),require=createRequire(import.meta.url);
+const {build}=createRequire(new URL('../apps/web/package.json',import.meta.url))('esbuild');
+const {chromium}=require('playwright'),dir=join(root,'.local/execution-ui');await mkdir(dir,{recursive:true});
+const base={manualCommits:{frontend:'a'.repeat(40),bff:'b'.repeat(40),backend:'c'.repeat(40)},scriptId:'login',scriptVersion:2,source:'test("login",async()=>{});',sourceHash:'a'.repeat(64),sourceSnapshotId:'snapshot-1',environment:'isolated-fixture',deploymentVerified:false,steps:['登入'],completed:1,message:'1 tests, 0 failures, 0 skipped',mode:'real',testVersion:'QA-20261027-01',createdAt:'2026-10-27T00:00:00Z',startedAt:'2026-10-27T00:00:01Z',finishedAt:'2026-10-27T00:00:08Z',repositories:[],recordKind:'run',events:[{sequence:1,event:{type:'step-end',title:'登入回應',status:'passed'}}]};
+const records=[{...base,id:'run-a',scriptName:'登入成功案例',status:'passed'},{...base,id:'run-b',scriptName:'登入失敗案例',status:'failed',message:'預期 HTTP 200，收到 HTTP 500',events:[{sequence:1,event:{type:'step-end',title:'驗證登入回應',status:'failed',path:'main.2.1',action:'click',actor:'receiver',durationMs:1234,message:'預期 HTTP 200，收到 HTTP 500。請檢查回應狀態。'}}]},{...base,id:'run-c',scriptName:'尚未完成的案例',testVersion:'QA-RUNNING',status:'running',finishedAt:null},{...base,id:'flow-d',scriptName:'API 未驗證案例',testVersion:'API-FLOW',recordKind:'workflow',source:'',sourceHash:'',status:'skipped',message:'略過未驗證步驟',events:[{sequence:1,event:{type:'step-end',title:'未驗證檢查',status:'skipped'}}]}];
+const entry=`import React,{useState} from 'react';import {createRoot} from 'react-dom/client';import {VersionResults} from '../../apps/web/src/features/testing/VersionResults';import {QualityReports} from '../../apps/web/src/features/testing/QualityReports';import {UiDensityContext,Button} from '../../apps/web/src/components/ui/controls';import {createReportPdf} from '../../apps/web/src/features/testing/reportPdf';
+const objectUrl=URL.createObjectURL.bind(URL);URL.createObjectURL=blob=>{window.pdfBlob=blob;return objectUrl(blob);};document.addEventListener('click',event=>{const link=event.target.closest?.('a[download]');if(link){if(!window.allowDownload)event.preventDefault();window.pdfFilename=link.download;}});
+const initial=${JSON.stringify(records)};if(window.seedBatch)initial.slice(0,2).forEach(row=>{row.batchId='batch-1';row.batchName='會員登入回歸';});window.records=JSON.parse(localStorage.getItem('execution-fixture')||'null')||initial;window.failDelete=false;window.failDownload=false;
+const groups=()=>Object.values(window.records.filter(row=>row.batchId).reduce((result,row)=>{(result[row.testVersion]||=[]).push(row);return result;},{})).map(rows=>({testVersion:rows[0].testVersion,name:rows[0].batchName||'',batchId:rows[0].batchId,createdAt:rows[0].createdAt,total:rows.length,names:rows.map(row=>row.scriptName),ready:!rows.some(row=>['queued','running'].includes(row.status)),counts:Object.fromEntries(['passed','failed','skipped','cancelled','queued','running'].map(status=>[status,rows.filter(row=>row.status===status).length]))}));
+window.makeLongPdf=async()=>{const report={...groups()[0],records:initial.slice(0,2).map(row=>({...row,message:('長錯誤訊息與來源紀錄 '+row.id+' ').repeat(100),events:[{sequence:1,event:{type:'step-end',title:'長表格分頁驗證',status:row.status,message:'表格內容換行測試。'.repeat(80)+'表格續頁終點'}}]}))};return Array.from(new Uint8Array(await (await createReportPdf(report)).arrayBuffer()));};
+const nativeFetch=window.fetch.bind(window);
+window.fetch=async(url,init={})=>{if(String(url).startsWith('/fonts/'))return window.fontFail?new Response('',{status:503}):nativeFetch(url,init);const path=decodeURIComponent(String(url));let data;const send=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json'}});
+ if(init.method==='PATCH'){window.records.filter(row=>row.testVersion===path.split('/').at(-1)).forEach(row=>row.batchName=JSON.parse(init.body).name);localStorage.setItem('execution-fixture',JSON.stringify(window.records));return send({name:JSON.parse(init.body).name});} if(init.method==='DELETE'){if(path==='/api/android/runs/android-one'&&!window.failDelete){window.androidDeleted=true;return send({deleted:true});}if(window.failDelete)return send({error:'刪除失敗，請重試。'},503);if(path.includes('/execution-versions/')){const version=path.split('/').at(-1);window.records=window.records.filter(row=>row.testVersion!==version);}else{const id=path.split('/').at(-1);window.records=window.records.filter(row=>row.id!==id);}localStorage.setItem('execution-fixture',JSON.stringify(window.records));return send({deleted:true});}
+ if(path==='/api/android/runs'&&window.failAndroid)return send({error:'Flow 來源暫時中斷'},503);
+ if(path==='/api/android/runs')data=window.androidDeleted?[]:[{id:'android-one',name:'開啟 LINE',scriptVersion:1,testVersion:'ANDROID-one',createdAt:'2026-10-28T01:00:00Z',serial:'emulator-5554',status:'passed',completed:1,message:'實際前景檢查通過',source:'export const flow = {}',steps:[{name:'確認前景',status:'passed'}]}];
+ else if(path==='/api/android/runs/android-one')data={id:'android-one',name:'開啟 LINE',scriptVersion:1,testVersion:'ANDROID-one',createdAt:'2026-10-28T01:00:00Z',serial:'emulator-5554',status:'passed',completed:1,message:'實際前景檢查通過',source:'export const flow = {}',steps:[{name:'確認前景',status:'passed'}]};
+ else if(path==='/api/api-library/project-test/runs')data=[{id:'request-one',status:'passed',created_at:'2026-10-27T12:00:00Z',body:{requestName:'查詢會員',sourceSnapshotId:'source-one',result:{status:200,durationMs:48,outcome:'passed',checks:[{name:'HTTP 正確',passed:true}],body:'{"ok":true}',message:'檢查通過'}}}];
+ else if(path==='/api/execution-records')data=window.records;
+ else if(path.startsWith('/api/execution-records/'))data=window.records.find(row=>row.id===path.split('/').at(-1));
+ else if(path==='/api/quality-reports')data=groups();
+ else if(path.startsWith('/api/quality-reports/')){if(window.failDownload)return send({error:'報告讀取失敗'},503);const version=path.split('/').at(-1);data={...groups().find(row=>row.testVersion===version),records:window.records.filter(row=>row.testVersion===version)};}
+ else data=[];return send(data);};
+function Harness(){const [view,setView]=useState(window.initialView||'runs');return <UiDensityContext.Provider value="compact"><main className="min-h-screen bg-canvas p-3 font-sans text-ink"><nav aria-label="驗證頁面" className="mb-4 flex gap-2"><Button onClick={()=>setView('runs')}>版本與執行紀錄</Button><Button onClick={()=>setView('reports')}>品質報告</Button></nav><h1 className="mb-4 text-heading font-bold">{view==='runs'?'版本與執行紀錄':'品質報告'}</h1>{view==='runs'?<VersionResults projectId="project-test"/>:<QualityReports/>}</main></UiDensityContext.Provider>}createRoot(document.getElementById('root')).render(<Harness/>);`;
+const bundle=await build({stdin:{contents:entry,resolveDir:dir,loader:'tsx'},define:{'import.meta.env.BASE_URL':'"/"'},bundle:true,write:false,format:'iife',jsx:'automatic',nodePaths:[join(root,'apps/web/node_modules')]});
+const assets=join(root,'apps/web/dist/assets'),css=await readFile(join(assets,(await readdir(assets)).find(name=>name.endsWith('.css'))),'utf8');
+const html=view=>'<!doctype html><html lang="zh-Hant"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Execution verification</title><style>'+css+'</style><body><div id="root"></div><script>window.initialView='+JSON.stringify(view)+';'+bundle.outputFiles[0].text.replaceAll('</script','<\\/script')+'</script></body></html>';
+for(const [file,view] of [['runs-gate','runs'],['reports-gate','reports']])await writeFile(join(dir,file+'.html'),html(view).replace('<script>','<script>window.seedBatch=true;'));
+await writeFile(join(dir,'index.html'),html('runs'));
+const server=createServer(async(req,res)=>{try{const name=new URL(req.url,'http://localhost').pathname;const allowed=['Inter-Regular.ttf','Inter-Medium.ttf','NotoSansTC-Regular.ttf','NotoSansTC-Medium.ttf'];const font=allowed.find(file=>name==='/fonts/'+file);if(name!=='/'&&!font){res.writeHead(404).end();return;}res.end(await readFile(font?join(root,'apps/web/public/fonts',font):join(dir,'index.html')));}catch{res.writeHead(500).end();}});
+await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+const browser=await chromium.launch({executablePath:process.env.CHROME_PATH});
+try{
+ const page=await browser.newPage({viewport:{width:1440,height:1000}});page.setDefaultTimeout(15000);const errors=[];page.on('pageerror',error=>errors.push(error.message));if(process.env.UI_FIXTURE_FILE==='1')await page.route('**/fonts/*',async route=>route.fulfill({body:await readFile(join(root,'apps/web/public/fonts',new URL(route.request().url()).pathname.split('/').at(-1))),contentType:'font/ttf'}));await page.goto(process.env.UI_FIXTURE_FILE==='1'?pathToFileURL(join(dir,'index.html')).href:'http://127.0.0.1:'+server.address().port);
+ await page.getByRole('heading',{name:'登入成功案例',exact:true}).waitFor();
+ await page.getByRole('heading',{name:'開啟 LINE',exact:true}).waitFor();await page.getByRole('heading',{name:'查詢會員',exact:true}).waitFor();
+ assert.equal(await page.getByRole('heading',{name:'Flow Case 執行紀錄',exact:true}).count(),0);
+ const names=await page.getByRole('article').getByRole('heading').allTextContents();assert.equal(names[0],'開啟 LINE');assert.equal(names[1],'查詢會員');
+ async function choose(label,option){await page.getByRole('button',{name:new RegExp(label)}).click();await page.getByRole('option',{name:option,exact:true}).click();}
+ await choose('執行類型','Flow Case');assert.equal(await page.getByRole('article').count(),1);await page.getByRole('button',{name:'查看結果',exact:true}).click();await page.getByText('實際前景檢查通過',{exact:true}).waitFor();await page.getByText('1. 確認前景',{exact:true}).waitFor();
+ await choose('執行結果','失敗');await page.getByText('沒有符合的執行紀錄',{exact:true}).waitFor();await choose('執行結果','全部結果');
+ await page.getByRole('button',{name:'刪除紀錄 開啟 LINE',exact:true}).click();
+ await page.getByRole('dialog').getByRole('button',{name:'取消',exact:true}).click();
+ assert.equal(await page.getByRole('heading',{name:'開啟 LINE',exact:true}).count(),1);
+ await page.evaluate(()=>window.failDelete=true);
+ await page.getByRole('button',{name:'刪除紀錄 開啟 LINE',exact:true}).click();
+ await page.getByRole('dialog').getByRole('button',{name:'刪除執行紀錄',exact:true}).click();
+ await page.getByRole('dialog').getByRole('alert').waitFor();
+ await page.evaluate(()=>window.failDelete=false);
+ await page.getByRole('dialog').getByRole('button',{name:'刪除執行紀錄',exact:true}).click();
+ await page.getByRole('heading',{name:'開啟 LINE',exact:true}).waitFor({state:'hidden'});
+ await page.waitForTimeout(2200);
+ assert.equal(await page.getByRole('heading',{name:'開啟 LINE',exact:true}).count(),0);
+ await page.evaluate(()=>window.androidDeleted=false);
+ await page.waitForTimeout(2200);
+ console.log('PASS Android record delete cancellation, failure/retry and polling persistence');
+ await choose('執行類型','API 請求');assert.equal(await page.getByRole('article').count(),1);await page.getByRole('button',{name:'查看結果',exact:true}).click();await page.getByText('HTTP 正確',{exact:false}).first().waitFor();await page.getByText('API 回應',{exact:true}).click();await page.getByText('HTTP 200 · 48 ms',{exact:true}).waitFor();
+ await choose('執行類型','全部執行');await page.evaluate(()=>window.failAndroid=true);await page.getByRole('alert').filter({hasText:'Flow 來源暫時中斷'}).waitFor();assert.equal(await page.getByRole('heading',{name:'開啟 LINE',exact:true}).count(),1);assert.equal(await page.getByRole('heading',{name:'查詢會員',exact:true}).count(),1);await page.evaluate(()=>window.failAndroid=false);await page.getByRole('alert').filter({hasText:'Flow 來源暫時中斷'}).waitFor({state:'hidden'});console.log('PASS shared chronological list, Flow/API type and combined status filters, Android steps and API response details');
+ assert.equal(await page.getByRole('button',{name:'刪除紀錄 尚未完成的案例',exact:true}).isDisabled(),true);assert.equal(await page.getByRole('button',{name:'刪除版本 QA-RUNNING',exact:true}).count(),0);
+ await page.getByRole('button',{name:'刪除紀錄 登入成功案例',exact:true}).click();await page.getByRole('dialog').getByText('刪除這筆執行紀錄？測試案例仍會保留。',{exact:true}).waitFor();await page.getByRole('dialog').getByRole('button',{name:'取消',exact:true}).click();assert.equal(await page.getByRole('heading',{name:'登入成功案例',exact:true}).count(),1);
+ await page.evaluate(()=>window.failDelete=true);await page.getByRole('button',{name:'刪除紀錄 登入成功案例',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'刪除執行紀錄',exact:true}).click();await page.getByRole('alert').filter({hasText:'刪除失敗'}).waitFor();assert.equal(await page.getByRole('heading',{name:'登入成功案例',exact:true}).count(),1);
+ await page.evaluate(()=>window.failDelete=false);await page.getByRole('dialog').getByRole('button',{name:'刪除執行紀錄',exact:true}).click();await page.getByRole('heading',{name:'登入成功案例',exact:true}).waitFor({state:'hidden'});await page.reload();await page.getByRole('heading',{name:'登入失敗案例',exact:true}).waitFor();assert.equal(await page.getByRole('heading',{name:'登入成功案例',exact:true}).count(),0);
+ assert.equal(await page.getByRole('button',{name:'刪除版本 QA-20261027-01',exact:true}).count(),0);await page.getByRole('button',{name:'刪除紀錄 登入失敗案例',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'刪除執行紀錄',exact:true}).click();await page.getByRole('heading',{name:'登入失敗案例',exact:true}).waitFor({state:'hidden'});console.log('PASS single/version deletion, cancel, failure/retry, refresh persistence and active restrictions');
+ await page.evaluate(()=>localStorage.removeItem('execution-fixture'));await page.reload();await page.getByRole('article',{name:'API 未驗證案例',exact:true}).getByRole('button',{name:'查看結果',exact:true}).click();await page.getByText('未驗證檢查',{exact:false}).first().waitFor();assert.equal(await page.getByText('略過',{exact:true}).count()>0,true);
+ await page.evaluate(()=>{window.records.forEach(row=>{if(row.testVersion==='QA-20261027-01'||row.testVersion==='QA-RUNNING'){row.batchId='batch-'+row.testVersion;row.batchName=row.testVersion==='QA-20261027-01'?'會員登入回歸':'';}});localStorage.setItem('execution-fixture',JSON.stringify(window.records));});await page.reload();assert.equal(await page.getByRole('heading',{name:/會員登入回歸.*報告/}).count(),0,'batch reports belong only in quality reports');assert.equal(await page.getByRole('heading',{name:'登入成功案例',exact:true}).count(),0,'batch members must not appear as single executions');await page.getByRole('navigation').getByRole('button',{name:'品質報告',exact:true}).click();await page.getByRole('heading',{name:/會員登入回歸.*報告/}).waitFor();assert.equal(await page.getByRole('heading',{name:'API-FLOW',exact:true}).count(),0);const report=page.getByRole('article').filter({has:page.getByRole('heading',{name:/會員登入回歸.*報告/})});assert.match(await report.innerText(),/2 個案例/);assert.equal(await page.getByRole('heading',{name:/會員登入回歸.*報告/}).count(),1);assert.equal(await page.getByRole('article').filter({has:page.getByRole('heading',{name:/批次測試.*報告/})}).getByRole('button',{name:'下載 PDF',exact:true}).isDisabled(),true);
+ await report.getByRole('button',{name:'查看報告',exact:true}).click();await page.getByText('失敗步驟與錯誤',{exact:true}).waitFor(); await page.getByText('main.2.1 · click · 接收者 · 1234 ms',{exact:true}).waitFor();console.log('PASS nested failure evidence renders path, action, actor and duration');await report.getByRole('region',{name:'手動填入的 Git commit',exact:true}).waitFor();await report.getByText('b'.repeat(40),{exact:true}).waitFor();await report.getByText('預期 HTTP 200，收到 HTTP 500',{exact:true}).waitFor();
+ await page.evaluate(()=>window.failDownload=true);await report.getByRole('button',{name:'下載 PDF',exact:true}).click();await page.getByRole('alert').filter({hasText:'報告讀取失敗'}).waitFor();await page.evaluate(()=>{window.failDownload=false;window.fontFail=true;});await report.getByRole('button',{name:'下載 PDF',exact:true}).click();await page.getByRole('alert').filter({hasText:'報告字型載入失敗'}).waitFor();await page.evaluate(()=>window.fontFail=false);
+ await report.getByRole('button',{name:'下載 PDF',exact:true}).click();await page.waitForFunction(()=>window.pdfFilename);assert.match(await page.evaluate(()=>window.pdfFilename),/\.pdf$/);assert.match(await page.evaluate(()=>window.pdfFilename),/會員登入回歸/); const bytes=await page.evaluate(async()=>Array.from(new Uint8Array(await window.pdfBlob.arrayBuffer())));await writeFile(join(dir,'verified-report.pdf'),new Uint8Array(bytes));assert.match((await readFile(join(dir,'verified-report.pdf'))).subarray(0,8).toString(),/%PDF-1\.[4-7]/);
+ await page.evaluate(()=>window.allowDownload=true);const nativeDownload=page.waitForEvent('download',{timeout:120000});await report.getByRole('button',{name:'下載 PDF',exact:true}).click();const download=await nativeDownload;assert.equal(await download.failure(),null);await download.saveAs(join(dir,'native-download.pdf'));await page.evaluate(()=>window.allowDownload=false);console.log('PASS native PDF download');
+ await report.getByRole('button',{name:'改名',exact:true}).click();await page.getByRole('textbox',{name:'報告名稱',exact:true}).fill('交付驗收');await page.getByRole('button',{name:'儲存名稱',exact:true}).click();await page.getByRole('heading',{name:/交付驗收.*報告/}).waitFor(); const long=await page.evaluate(()=>window.makeLongPdf());await writeFile(join(dir,'long-report.pdf'),new Uint8Array(long));console.log('PASS per-execution reports, unfinished restrictions, summary, download failure/retry and PDF bytes/filename and embedded font failure/retry');
+ for(const width of [320,390,1280]){await page.setViewportSize({width,height:900});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'report overflow at '+width);}
+
+ const finished=page.getByRole('article').filter({has:page.getByRole('heading',{name:/交付驗收.*報告/})});
+ const activeReport=page.getByRole('article').filter({has:page.getByRole('heading',{name:/批次測試.*報告/})});
+ assert.equal(await activeReport.getByRole('button',{name:/刪除報告/}).isDisabled(),true);
+ await finished.getByRole('button',{name:/刪除報告/}).click();
+ const deleteReportDialog=page.getByRole('dialog',{name:'刪除報告',exact:true});
+ await deleteReportDialog.getByText(/測試案例與腳本版本仍會保留/).waitFor();
+ await deleteReportDialog.getByRole('button',{name:'取消',exact:true}).click();
+ assert.equal(await finished.count(),1);
+ await page.evaluate(()=>window.failDelete=true);
+ await finished.getByRole('button',{name:/刪除報告/}).click();
+ await deleteReportDialog.getByRole('button',{name:'刪除報告',exact:true}).click();
+ await deleteReportDialog.getByRole('alert').filter({hasText:'刪除失敗'}).waitFor();
+ assert.equal(await finished.count(),1);
+ await page.evaluate(()=>window.failDelete=false);
+ await deleteReportDialog.getByRole('button',{name:'刪除報告',exact:true}).click();
+ await deleteReportDialog.waitFor({state:'hidden'});assert.equal(await finished.count(),0);
+ await page.reload();await page.getByRole('article').first().waitFor();
+ assert.equal(await page.getByRole('heading',{name:/交付驗收.*報告/}).count(),0);
+ assert.deepEqual(errors,[]);console.log('PASS quality report delete confirmation, cancel, failure/retry, active restrictions and reload persistence');
+}finally{await browser.close();await new Promise(resolve=>server.close(resolve));}

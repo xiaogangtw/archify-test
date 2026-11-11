@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": [
+      "node"
+    ],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": [
+    "api/**/*.ts",
+    "tests/**/*.ts",
+    "support/**/*.mts",
+    "playwright.config.ts",
+    "support/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "reports",
+    "legacy"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "environments": [
+    {
+      "id": "dev-bff",
+      "name": "Dev BFF",
+      "baseUrl": "https://bff.example.test/graphql",
+      "projectIds": [],
+      "enabled": true,
+      "variables": {},
+      "authReferences": []
+    }
+  ]
+}

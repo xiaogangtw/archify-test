@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.npm-cache/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+/.templates/
+.local/
+config/integrations.json
+config/api-environments.json
+.agents/skills
+work/*.tar.gz

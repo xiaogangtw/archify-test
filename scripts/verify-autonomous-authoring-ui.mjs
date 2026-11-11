@@ -1,0 +1,63 @@
+import {createRequire} from 'node:module';
+import {mkdir,readFile,readdir,writeFile} from 'node:fs/promises';
+import {join} from 'node:path';
+import {fileURLToPath,pathToFileURL} from 'node:url';
+import assert from 'node:assert/strict';
+import {chromium} from 'playwright';
+const root=fileURLToPath(new URL('..',import.meta.url)),dir=join(root,'.local/autonomous-authoring-ui');
+await mkdir(dir,{recursive:true});
+const {build}=createRequire(new URL('../apps/web/package.json',import.meta.url))('esbuild');
+const entry=`import React from 'react';import {createRoot} from 'react-dom/client';import {TestingProvider} from '../../apps/web/src/features/testing/TestingProvider';import {ScriptWorkspace} from '../../apps/web/src/features/testing/ScriptWorkspace';import {ScriptLibrary} from '../../apps/web/src/features/testing/ScriptLibrary';import {bootstrap} from '../../apps/web/src/features/testing/controlApi';
+window.base='export const flow={appPackage:"jp.naver.line.android",steps:[{name:"確認前景",action:"assertAppForeground"}]} as const;';
+window.next='export const flow={appPackage:"jp.naver.line.android",steps:[{name:"確認前景",action:"assertAppForeground"},{name:"確認 LINE",action:"assertAppForeground"}]} as const;';
+window.script={id:'case',name:'',source:window.base,caseType:'flow',version:0,messages:[],metadata:{objective:'核對接收端名片',preconditions:['使用已授權的測試帳號'],expectedResults:['接收端不顯示隱藏的手機欄位']}};
+window.task=null;window.requests=[];window.saved=[];window.polls=0;
+window.fetch=async(url,init={})=>{const path=String(url),body=init.body?JSON.parse(init.body):{};let data={};
+if(path.endsWith('/bootstrap'))data={documents:[],scripts:window.saved,history:window.saved};
+else if(path.includes('/agent-tasks/latest'))data={task:window.task};
+else if(path.endsWith('/agent-tasks')&&init.method==='POST'){window.requests.push(body);window.polls=0;window.task={id:'task',threadId:body.threadId,scriptVersion:body.scriptVersion,state:'running',baseSource:body.source,baseMetadata:body.metadata,draft:{source:body.source,revision:0,metadata:body.metadata},events:[],revision:0,message:'正在觀察手機'};data=window.task;}
+else if(path.endsWith('/agent-tasks/task')){window.polls++;window.task={...window.task,state:window.polls>1?'waiting':'running',draft:{source:window.next,revision:window.polls,metadata:{...window.script.metadata,title:'接收端名片不顯示已隱藏的手機整欄',titleOrigin:'agent',categorySuggestion:'名片編輯'}},question:window.polls>1?{prompt:'請提供接收者測試帳號參照',options:[]}:undefined,message:window.polls>1?'已整理草稿，接收端仍待核對':'已觀察並整理草稿'};data=window.task;}
+else if(path.includes('/scripts/')&&init.method==='PUT'){window.script={...body,version:body.version+1,caseCode:'TC-000001'};window.saved=[window.script];data=window.script;}
+else if(path.endsWith('/runs')||path.endsWith('/assistant'))data=[];
+return Response.json(data);};await bootstrap();const root=createRoot(document.getElementById('root'));let key=0;window.mount=()=>root.render(<main className="min-h-screen bg-canvas p-3 font-sans text-ink"><TestingProvider><ScriptWorkspace key={++key} flowOnly deviceSerial="emulator-5554" initialScript={window.script}/></TestingProvider></main>);window.mountLibrary=async()=>{await bootstrap();root.render(<main className="min-h-screen bg-canvas p-3 font-sans text-ink"><TestingProvider><ScriptLibrary scope="flow" onEdit={()=>{}}/></TestingProvider></main>);};window.mount();`;
+const output=await build({stdin:{contents:entry,resolveDir:dir,loader:'tsx'},nodePaths:[join(root,'apps/web/node_modules')],bundle:true,write:false,format:'esm',jsx:'automatic',target:'es2022'});
+const assets=join(root,'apps/web/dist/assets'),name=(await readdir(assets)).find(x=>x.startsWith('index-')&&x.endsWith('.css'));
+const file=join(dir,'index.html');
+await writeFile(file,'<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>自主案例撰寫驗證</title><style>'+await readFile(join(assets,name),'utf8')+'</style></head><body><div id="root"></div><script type="module">'+output.outputFiles[0].text+'</script></body></html>');
+const browser=await chromium.launch({channel:'chrome',downloadsPath:join(dir,'downloads')}).catch(()=>chromium.launch({downloadsPath:join(dir,'downloads')}));
+try{
+ const page=await browser.newPage({acceptDownloads:true}),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(pathToFileURL(file).href);
+ const title=page.getByRole('textbox',{name:'案例名稱',exact:true}),editor=page.getByRole('textbox',{name:'TypeScript 程式碼',exact:true});
+ await page.getByRole('textbox',{name:'傳送訊息',exact:true}).fill('核對手機隱藏後接收端名片');await page.getByRole('button',{name:'傳送訊息',exact:true}).click();
+ await page.getByRole('region',{name:'等待你的回答'}).waitFor();
+ assert.equal(await title.inputValue(),'接收端名片不顯示已隱藏的手機整欄');assert.equal(await editor.inputValue(),await page.evaluate(()=>window.next));
+ assert.equal(await page.getByRole('region',{name:'AI 修改預覽'}).count(),0);
+ assert.equal(await page.getByRole('region',{name:'案例業務內容'}).getByText('接收端不顯示隱藏的手機欄位',{exact:true}).count(),1);
+ assert.equal(await page.getByRole('button',{name:'儲存案例',exact:true}).count(),1);
+ await page.getByRole('button',{name:'儲存案例',exact:true}).click();await page.getByText('已儲存 v1',{exact:true}).waitFor();
+ const saved=await page.evaluate(()=>window.saved[0]);assert.equal(saved.name,saved.metadata.title);assert.equal(saved.source,await page.evaluate(()=>window.next));assert.equal(saved.caseCode,'TC-000001');
+ await title.fill('我的名片驗證');
+ await page.evaluate(()=>window.mount());await page.getByRole('region',{name:'等待你的回答'}).waitFor();
+ assert.equal(await title.inputValue(),saved.name,'reopening restores the saved name, not an unsaved manual edit');
+ await title.fill('人工保留的名稱');
+ await page.getByRole('textbox',{name:'傳送訊息',exact:true}).fill('接收者參照為 qa-receiver');await page.getByRole('button',{name:'回答並繼續',exact:true}).click();
+ await page.waitForFunction(()=>window.requests.length===2&&window.polls>=2);
+ await page.getByRole('button',{name:'儲存案例',exact:true}).waitFor();
+ assert.equal(await page.getByRole('region',{name:'等待你的回答'}).count(),1);
+ assert.equal(await title.inputValue(),'人工保留的名稱');assert.equal(await page.evaluate(()=>window.requests[1].metadata.title),'人工保留的名稱');
+ assert.equal(await page.evaluate(()=>window.requests[1].draftRevision),2);
+ await page.setViewportSize({width:390,height:844});await page.keyboard.press('Tab');
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
+ await page.evaluate(async()=>{window.script={...window.script,maturity:'candidate',metadata:{...window.script.metadata,referenceCaseCode:'GAP-03'}};window.saved=[window.script];await window.mountLibrary();});
+ await page.getByRole('button',{name:'匯出案例',exact:true}).waitFor();
+ assert.equal(await page.getByText('TC-000001',{exact:true}).count(),1);assert.equal(await page.getByText('候選',{exact:true}).count(),1);assert.equal(await page.getByText(/無法同步執行狀態/).count(),0);
+ const downloaded=page.waitForEvent('download');await page.getByRole('button',{name:'匯出案例',exact:true}).click();const download=await downloaded;assert.equal(download.suggestedFilename(),'archify-cases.csv');
+ const stream=await download.createReadStream(),chunks=[];for await(const chunk of stream)chunks.push(chunk);const csv=Buffer.concat(chunks).toString('utf8');assert.match(csv,/GAP-03/);assert.match(csv,/候選/);
+ await page.getByRole('listitem',{name:'案例 '+saved.name}).focus();await page.keyboard.press('Enter');await page.getByRole('button',{name:'移動',exact:true}).waitFor();await page.getByRole('button',{name:'取消',exact:true}).click();
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
+ assert.deepEqual(errors,[]);
+ await writeFile(join(dir,'library.html'),(await readFile(file,'utf8')).replace('window.mount();', 'window.script={...window.script,name:"候選名片案例",caseCode:"TC-000001",maturity:"candidate"};window.saved=[window.script];window.mountLibrary();'));
+ await writeFile(join(dir,'populated.html'),(await readFile(file,'utf8')).replace(/window\.task\s*=\s*null;/, 'window.task={id:"task",threadId:"gate",scriptVersion:0,state:"waiting",baseSource:window.base,draft:{source:window.next,revision:2,metadata:{...window.script.metadata,title:"接收端名片不顯示已隱藏的手機整欄",titleOrigin:"agent",categorySuggestion:"名片編輯",referenceCaseCode:"GAP-03",assumptions:["接收者仍待指定"]}},question:{prompt:"請提供接收者測試帳號參照",options:["先保留草稿"]},events:[],revision:2,message:"已整理草稿，接收端仍待核對"};'));
+ const populated=await browser.newPage();await populated.goto(pathToFileURL(join(dir,'populated.html')).href);await populated.waitForFunction(()=>document.querySelector('input')?.value.includes('接收端名片'));await populated.getByRole('region',{name:'等待你的回答'}).waitFor();assert.equal(await populated.getByText('GAP-03',{exact:true}).count(),1);
+ console.log('PASS: live Agent draft/title/metadata sync, one save, exact saved snapshot, reopening, manual name protection, revision submission, waiting-question continuation, library code/candidate/CSV/keyboard move and mobile overflow (mock server/model).');
+}finally{await browser.close();}

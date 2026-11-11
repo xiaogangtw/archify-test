@@ -1,0 +1,46 @@
+{
+  "version": "0.8",
+  "date": "2026-10-23",
+  "passed": [
+    "TypeScript and Vite production build",
+    "29 source files: no emoji or hardcoded component styling; no native select",
+    "Outer app-shell CSS only; no inline styles or dashboard execution entry",
+    "Case snapshots and versions remain independent; variable extraction and readable labels",
+    "Manual browser: frontend GitLab settings save locally without connection",
+    "Manual browser: case creation, flow selection, reorder, save and persistence",
+    "Manual browser: planned browser and visual runners cannot start",
+    "Manual browser: sidebar scroll remains enabled with scrollbar hidden",
+    "30 source files: no hardcoded component styles or emoji",
+    "Manual browser: three repository snapshots save and survive reload; equal and unequal manually entered SHAs are labeled unverified",
+    "32 source files: no hardcoded component styles or emoji; 21 UI files no native select",
+    "Script template TypeScript syntax and literal step extraction checks",
+    "Manual browser: proposal apply, save, step progression/failure, reload preserves script and discussion",
+    "37 source files: no hardcoded component styles or emoji",
+    "Manual browser: four navigation entries, version results with success/failure and source details, API discovery unverified preview, saved scripts library",
+    "38 source files: no hardcoded component styling or emoji",
+    "Scenario readiness, vague expectation, serialization and fixme scaffold syntax tests",
+    "Manual browser: guided answer preview/apply, registration example, confirmation gating, persistence/reopen and vague expectation invalidation; no screenshots saved",
+    "Library tree tests: nested paths, cycle/duplicate/missing target prevention, root move and serialization",
+    "Manual browser: create nested folders, native drag a saved script into child folder, play preselects correct case; no screenshots saved",
+    "Flat-category migration retains case assignments and resolves duplicate titles",
+    "Manual browser: single-level category headings, explicit drag handle drop to category title succeeds; no screenshots saved",
+    "Inline run model: immutable snapshots, timed progression, terminal/cancel behavior, fixme and missing script guards",
+    "Manual browser: play remains in library, running/success colors, stop, red cannot-start state, whole-row native drag without a drag button; no screenshots saved",
+    "Automatic run version uses Asia/Taipei date and immutable three-repository URL/ref snapshot; unread SHA/tag are null",
+    "Manual browser: project empty state, Git-only editor, save/reopen three URLs and refresh icon unconnected state; routine library instructions and move notices removed",
+    "TypeScript/Vite build after Git connection page and project bindings",
+    "Git connection model tests: host/repo allowlist, role, transport, expiry/disabled, secret-reference validation",
+    "43 source files hardcode/emoji checks and 26 UI files native select check",
+    "Notion: current main spec replaced and read back; legacy page consolidated to a pointer without deleting either page"
+  ],
+  "blocked": [
+    "Upstream verify_states light/dark: playwright not installed; REQUIRED, FAILING",
+    "Upstream axe_audit: playwright not installed; REQUIRED, FAILING",
+    "Current Git connection UI browser verification: local browser use disabled in Work settings"
+  ],
+  "advisory": [
+    "Decorative border contrast is below 3:1; do not use it as an essential control boundary",
+    "Light-mode page rendering not fully audited",
+    "No live LLM, OAuth, deployment or company system connections"
+  ]
+}

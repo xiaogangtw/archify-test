@@ -1,0 +1,32 @@
+{
+  "name": "archify-test",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "workspaces": [
+    "apps/web",
+    "test-project"
+  ],
+  "scripts": {
+    "architecture:report": "node scripts/architecture-report.mjs",
+    "dev": "node scripts/dev.mjs",
+    "test": "npm run check:framework --prefix test-project",
+    "android:appium:setup": "node scripts/setup-appium.mjs",
+    "android:test": "node --test services/android/*.test.mjs",
+    "docs:plans:index": "node scripts/docs-plans-index.mjs",
+    "docs:check": "node scripts/docs-check.mjs",
+    "test:legacy": "npm test --prefix services/control-api",
+    "test:project": "npm test --prefix test-project",
+    "flow:project": "npm run flow --prefix test-project",
+    "test:workspace": "node --test services/local-workspace/*.test.mjs"
+  },
+  "dependencies": {
+    "graphql": "^16.14.2",
+    "image-size": "2.1.0",
+    "parse5": "8.0.0",
+    "typescript": "~5.9.0",
+    "ws": "8.22.0"
+  }
+}

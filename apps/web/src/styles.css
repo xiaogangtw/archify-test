@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Only the outer application layout belongs here. Components use Tailwind. */
+.app-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  color-scheme: dark;
+}
+
+@media (min-width: 1024px) {
+  .app-shell {
+    grid-template-columns: theme('spacing.sidebar') minmax(0, 1fr);
+  }
+}
+

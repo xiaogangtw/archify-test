@@ -1,0 +1,10 @@
+node_modules
+.git
+.local
+.npm-cache
+apps/web/node_modules
+apps/web/dist
+.env
+.env.*
+**/.env
+**/.env.*

@@ -1,0 +1,25 @@
+{
+  "name": "@archify/control-api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "test": "tsx --test test/*.test.ts test/*.test.mjs",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fastify/websocket": "11.3.4",
+    "fastify": "^5.6.2",
+    "graphql": "^16.14.2",
+    "pg": "^8.16.3",
+    "tsx": "^4.20.6",
+    "typescript": "5.9.3",
+    "ws": "8.22.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/pg": "^8.15.5",
+    "@types/ws": "8.18.2"
+  }
+}

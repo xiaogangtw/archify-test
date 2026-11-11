@@ -1,0 +1,17 @@
+services:
+  https:
+    image: caddy:2-alpine
+    profiles: [share]
+    environment:
+      ARCHIFY_PUBLIC_HOST: '${ARCHIFY_PUBLIC_HOST:?Set ARCHIFY_PUBLIC_HOST to your DNS hostname}'
+    ports: ['80:80', '443:443']
+    volumes:
+      - ./deploy/web/Caddyfile:/etc/caddy/Caddyfile:ro
+      - archify_tls_data:/data
+      - archify_tls_config:/config
+    networks: [outbound]
+    depends_on: [web]
+    restart: unless-stopped
+volumes:
+  archify_tls_data: {}
+  archify_tls_config: {}

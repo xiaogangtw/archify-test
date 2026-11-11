@@ -1,0 +1,4 @@
+interface:
+  display_name: "Playwright 手機測試報告"
+  short_description: "使用 Playwright 執行情境測試，擷取手機畫面並產出本機繁體中文圖文報告"
+  default_prompt: "使用 $playwright-test-report 驗證已授權情境，腳本存 tests/web，390 × 844 手機證據與圖文報告存 reports/playwright 的日期時間資料夾。"

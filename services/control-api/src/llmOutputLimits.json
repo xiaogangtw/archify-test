@@ -1,0 +1,6 @@
+{
+  "replyCharacters": 200000,
+  "sourceCharacters": 200000,
+  "responseCharacters": 600000,
+  "cliOutputBytes": 2000000
+}

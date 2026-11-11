@@ -1,0 +1,71 @@
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+import { readdir, readFile, writeFile, mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
+import { Readable } from 'node:stream';
+import { fixture } from '../services/local-workspace/test-support.mjs';
+import { createHandler } from '../services/local-workspace/plugin.mjs';
+import { scriptEvidence, caseEvidence } from '../test-project/support/script-evidence.mjs';
+const require = createRequire(import.meta.url);
+const { chromium } = require('../.local/gate-deps/node_modules/playwright');
+assert.equal(process.env.DS_REQUIRE_BROWSER, '1');
+const f = await fixture();
+await f.workspace.initialize();await f.enableUi();
+await mkdir(join(f.source,'src/pages'),{recursive:true});
+await writeFile(join(f.source,'src/pages/CardPage.tsx'),"import {list} from '../api'; export default function CardPage(){return null;}");
+await writeFile(join(f.source,'src/routes.tsx'),"import React from 'react'; const Card=React.lazy(()=>import('./pages/CardPage'));const routes=[{path:'/cards',component:Card,title:'名片'}];");
+const analysis = await f.workspace.scan();
+await f.workspace.generate({ scanId: analysis.scanId, ids: analysis.requests.map(item => item.id) });
+const generated = join(f.project, 'tests/api/GetCard.spec.ts');
+await writeFile(generated, (await readFile(generated, 'utf8')).replace('async () => {}', 'async () => { await test.step("讀取名片", async () => {}); await test.step("確認結果", async () => {}); }'));
+await f.workspace.importKnowledge([{ name: '名片規則.md', content: '# 名片\n登入後可讀取自己的名片。', category: 'business', featureIds: ['F-CARD'] }]);
+const handler = createHandler(f.workspace, 'catalog-ui');
+const browser = await chromium.launch({ executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: true });
+const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
+page.setDefaultTimeout(10000);
+const assets = await readdir('apps/web/dist/assets');
+const css = await readFile('apps/web/dist/assets/' + assets.find(name => name.endsWith('.css')), 'utf8');
+const js = await readFile('apps/web/dist/assets/' + assets.find(name => name.endsWith('.js')), 'utf8');
+const html = '<!doctype html><html lang="zh-Hant"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>互動地圖驗證</title><style>' + css + '</style><body><div id="root"></div><script>' + js.replaceAll('</script', '<\\/script') + '</script></body></html>';
+const errors = []; page.on('pageerror', error => errors.push(error.message));
+await page.route('http://127.0.0.1:5191/**', async route => {
+  const request = route.request(), url = new URL(request.url());
+  if (!url.pathname.startsWith('/local-api/')) return route.fulfill({ status: 200, contentType: 'text/html', body: html });
+  const req = Readable.from(request.postData() ? [request.postData()] : []);
+  req.url = url.pathname; req.method = request.method(); req.socket = { remoteAddress: '127.0.0.1' }; req.headers = { ...request.headers(), host: url.host };
+  let status = 200, body;
+  await handler(req, { set statusCode(value) { status = value; }, setHeader() {}, end(value) { body = value; } });
+  await route.fulfill({ status, contentType: 'application/json', body });
+});
+async function axe() {
+  await page.addScriptTag({ path: require.resolve('../.local/gate-deps/node_modules/axe-core/axe.min.js') });
+  const violations = await page.evaluate(async () => (await window.axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } })).violations);
+  assert.deepEqual(violations.map(item => ({ id: item.id, nodes: item.nodes.map(n => n.target) })), []);
+}
+try {
+ await page.goto('http://127.0.0.1:5191/?view=catalog');
+ await page.getByText('手動分析工具',{exact:true}).click();
+ await page.getByRole('button',{name:'準備分析資料',exact:true}).click();
+ await page.getByRole('status').filter({hasText:'已準備'}).waitFor();
+ const evidence=JSON.parse(await readFile(join(f.project,'analysis/feature-evidence.json'),'utf8'));
+ const sources=[{path:'src/pages/CardPage.tsx',line:1}];
+ const proposal={schemaVersion:1,sourceHash:evidence.sourceHash,catalogRevision:evidence.catalogRevision,generatedAt:new Date().toISOString(),features:[{id:'F-CARD',name:'名片管理',description:'頁面證據的功能分組',evidence:'code',sources,pageIds:evidence.pages.map(p=>p.id),apiIds:evidence.apis.map(a=>a.id),questions:['名片權限需確認']}],relations:[],unassignedPageIds:[],unassignedApiIds:[],notes:[]};
+ await writeFile(join(f.project,'analysis/feature-map.proposal.json'),JSON.stringify(proposal));
+ await page.getByRole('button',{name:'重新讀取',exact:true}).click();
+ await page.getByRole('button',{name:'載入 AI 結果',exact:true}).click();
+ await page.getByRole('button',{name:'功能：名片管理',exact:true}).waitFor();
+ assert.equal(await page.getByRole('button',{name:'專案：前端功能總覽',exact:true}).count(),1);
+ await page.getByRole('button',{name:'功能：名片管理',exact:true}).click();
+ await page.getByRole('button',{name:'前端頁面：名片',exact:true}).click();
+ await page.getByRole('region',{name:'程式碼預覽'}).locator('pre').filter({hasText:'CardPage'}).waitFor();
+ await page.getByRole('button',{name:'關閉詳情',exact:true}).click();
+ await page.getByRole('main').getByRole('button',{name:'測試流程',exact:true}).click();
+ assert.equal(await page.getByRole('button',{name:/^前端頁面：/}).count(),0);
+ await page.getByRole('button',{name:'產品頁面與 API',exact:true}).click();
+ await axe();
+ for(const width of [390,1024,1280,1440,1920]){await page.setViewportSize({width,height:1000});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);}
+ await page.setViewportSize({width:1440,height:1000});
+ if(process.env.ARCHIFY_GATE_REVIEW==='1')console.log('REVIEW_IMAGE:'+(await page.screenshot({type:'jpeg',quality:60})).toString('base64'));
+ assert.deepEqual(errors,[]);
+ console.log('PASS frontend overview UI: prepare actual evidence, validate/apply proposal, feature without tests, all-feature graph, page source preview, product/test separation, axe/contrast and responsive overflow. No model or product requests.');
+} finally {await browser.close();await f.dispose();}

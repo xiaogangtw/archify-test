@@ -1,0 +1,7 @@
+# Archify 原創角色素材
+
+archify-companion-v2.png 為內建 image_gen 於 2026-11-03 產生的透明 PNG：白瓷小鳥、石墨灰鳥喙與少量冷灰藍尾羽。網站只以 80px 顯示於右側近期執行區塊；純裝飾，不代表測試成功。未使用 GitHub Octocat 或第三方角色素材。
+
+## 最終生成提示
+
+Generate one original premium modern dashboard mascot asset, isolated transparent background, no text, no logo, no backdrop, no sticker border. A tiny sculptural ceramic bird companion for a developer tool, charming and quiet rather than childish: compact pear-shaped warm ivory porcelain body, small swept-back head, a single tiny black dot eye visible in three-quarter side profile looking toward the left, small matte charcoal beak, folded wings with clean geometric facets inspired by a paper airplane, and one short muted steel-blue tail feather. Tiny graphite feet. Understated, museum design-store collectible object, minimal contemporary Japanese product design influence, finely rendered matte ceramic texture, soft directional studio light and elegant restrained shading. Entire bird visible with generous transparent breathing room. Calm curious posture. The silhouette must remain readable at 80 CSS pixels high. No robot, no screen face, no oversized eyes, no grin, no cat, no GitHub Octocat, no human face, no metallic chrome, no colorful toy appearance, no accessories, no extra objects. Square composition. Prefer simple exquisite shape design and tactile finish over cuteness tricks. Intended for a black charcoal and white professional software dashboard.

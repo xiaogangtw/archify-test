@@ -1,0 +1,32 @@
+{
+  "host": "https://gitlab.example.com",
+  "repositories": [
+    {
+      "role": "frontend",
+      "url": "https://gitlab.example.com/team/frontend.git",
+      "projectId": "team/frontend",
+      "qaTag": "qa-20261023",
+      "tokenFile": "/run/integration-secrets/frontend-token"
+    },
+    {
+      "role": "bff",
+      "url": "https://gitlab.example.com/team/bff.git",
+      "projectId": "team/bff",
+      "qaTag": "qa-20261023",
+      "tokenFile": "/run/integration-secrets/metadata-token"
+    },
+    {
+      "role": "backend",
+      "url": "https://gitlab.example.com/team/backend.git",
+      "projectId": "team/backend",
+      "qaTag": "qa-20261023",
+      "tokenFile": "/run/integration-secrets/metadata-token"
+    }
+  ],
+  "llm": {
+    "baseUrl": "https://llm.example.com/v1/",
+    "model": "your-model",
+    "keyFile": "/run/integration-secrets/llm-key"
+  },
+  "allowSourceCode": false
+}

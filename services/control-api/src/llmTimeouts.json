@@ -1,0 +1,7 @@
+{
+  "cliMs": 600000,
+  "androidDecisionMs": 30000,
+  "leaseSeconds": 630,
+  "serverMs": 690000,
+  "browserMs": 720000
+}

@@ -1,0 +1,11 @@
+import { createRequire } from 'node:module';
+import { writeFile, readFile } from 'node:fs/promises';
+import assert from 'node:assert/strict';
+const {build}=createRequire(new URL('../apps/web/package.json',import.meta.url))('esbuild');
+const result=await build({entryPoints:['apps/web/tailwind.config.ts'],bundle:true,write:false,format:'esm',platform:'node'});
+const {default:config}=await import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text).toString('base64'));
+const content='// Standalone report token snapshot. Source: apps/web/tailwind.config.ts; regenerate with node scripts/sync-report-theme.mjs.\nexport default '+JSON.stringify(config.theme.extend.colors.report,null,2)+';\n';
+const target=new URL('../test-project/framework/report-theme.mjs',import.meta.url);
+if(process.argv.includes('--check'))assert.equal(await readFile(target,'utf8'),content,'報告 token 快照過期，請執行 node scripts/sync-report-theme.mjs');
+else await writeFile(target,content);
+console.log('PASS：同步獨立報告 token 快照');

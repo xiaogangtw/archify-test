@@ -1,0 +1,138 @@
+import { createRequire } from 'node:module';
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import assert from 'node:assert/strict';
+
+const root = fileURLToPath(new URL('..', import.meta.url));
+const require = createRequire(import.meta.url);
+let playwright; try { playwright = require('playwright'); } catch { playwright = require('../.local/gate-deps/node_modules/playwright'); }
+const { build } = createRequire(new URL('../apps/web/package.json', import.meta.url))('esbuild');
+const dir = join(root, '.local/web-playwright-ui'); await mkdir(dir, { recursive: true });
+const entry = `import React from 'react'; import {createRoot} from 'react-dom/client'; import {flushSync} from 'react-dom';
+import {WebPlaywrightWorkspace} from '../../apps/web/src/features/testing/WebPlaywrightWorkspace';
+import {requestNavigation} from '../../apps/web/src/features/testing/navigationGuard';
+import {newWebCase} from '../../apps/web/src/features/testing/webPlaywrightModel';
+window.tryNavigate=()=>requestNavigation(()=>{window.navigated=true;});
+const projectId=new URLSearchParams(location.search).get('project')||'p';window.calls=[];window.replyDelay=0;
+if(location.pathname.endsWith('/picker.html'))localStorage.setItem('archify.web-playwright.v1.'+projectId,JSON.stringify([{...newWebCase(),name:'會員資料表單',url:'https://test.example.com/form',source:'// 未驗證草稿'}]));
+window.fetch=async(url,init={})=>{window.calls.push({url,body:JSON.parse(init.body||'{}')});await new Promise(resolve=>setTimeout(resolve,window.replyDelay));return Response.json({reply:'依提供的欄位證據產生草稿；尚未操作網頁。',source:"import {test,expect} from '@playwright/test';\\ntest('表單',async({page})=>{await test.step('檢查表單',async()=>{await expect(page.getByRole('form')).toBeVisible();});});"});};
+flushSync(()=>createRoot(document.getElementById('root')).render(<main><h1>Web Playwright</h1><WebPlaywrightWorkspace projectId={projectId}/></main>));
+if(new URLSearchParams(location.search).has('author')||/author|settings/.test(location.pathname)){flushSync(()=>[...document.querySelectorAll('button')].find(button=>button.textContent==='選擇案例').click());flushSync(()=>[...document.querySelectorAll('button')].find(button=>button.textContent==='新增案例').click());}
+if(location.pathname.endsWith('/settings.html'))flushSync(()=>[...document.querySelectorAll('button')].find(button=>button.textContent==='測試設定').click());
+if(location.pathname.endsWith('/picker.html'))flushSync(()=>[...document.querySelectorAll('button')].find(button=>button.textContent==='選擇案例').click());`;
+const bundle = await build({ stdin: { contents: entry, resolveDir: dir, loader: 'tsx' }, nodePaths: [join(root, 'apps/web/node_modules')], bundle: true, write: false, format: 'iife', jsx: 'automatic' });
+const assets = join(root, 'apps/web/dist/assets');
+const css = await readFile(join(assets, (await readdir(assets)).find(name => name.endsWith('.css'))), 'utf8');
+const html = '<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Web Playwright 工作台驗證</title><style>' + css + '</style></head><body class="bg-canvas text-ink"><div id="root"></div><script>' + bundle.outputFiles[0].text.replaceAll('</script', '<\\/script') + '</script></body></html>';
+const file = join(dir, 'index.html'); await writeFile(file, html);
+await writeFile(join(dir, 'author.html'), html);
+await writeFile(join(dir, 'settings.html'), html);
+await writeFile(join(dir, 'picker.html'), html);
+const browser = await playwright.chromium.launch({ executablePath: process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe' });
+try {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } }); const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  const url = pathToFileURL(file).href;
+  await page.goto(url); await page.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem('archify.e2e-plans.v1.p', JSON.stringify([{id:'old-web',platform:'web',name:'舊網頁草稿'},{id:'android-keep',platform:'android',name:'保留手機草稿'}]));
+    localStorage.setItem('archify.e2e-plans.v1.other', JSON.stringify([{id:'other-web',platform:'web'}]));
+  }); await page.reload();
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem('archify.e2e-plans.v1.p')).length === 1);
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('archify.e2e-plans.v1.p'))[0].id), 'android-keep');
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('archify.e2e-plans.v1.other')).length), 1);
+  assert.equal(await page.getByText('舊版 Web 流程草稿').count(), 0);
+  assert.equal(await page.getByRole('region', {name:'網頁畫面',exact:true}).isVisible(), true);
+  assert.equal(await page.getByRole('region', {name:'Web 案例選單'}).isVisible(), false);
+  assert.equal(await page.getByRole('textbox', {name:'案例名稱',exact:true}).count(), 0);
+  assert.equal(await page.getByRole('button', {name:'環境資訊',exact:true}).getAttribute('aria-expanded'), 'false');
+  await page.getByRole('button', {name:'環境資訊',exact:true}).click();
+  await page.getByText('可撰寫與保存案例；外部 Playwright Worker、LIFF 登入與批次執行尚未接入。',{exact:true}).waitFor();
+  await page.getByRole('button', {name:'環境資訊',exact:true}).click();
+  await page.getByRole('button', {name:'選擇案例',exact:true}).click();
+  await page.keyboard.press('Escape');
+  assert.equal(await page.getByRole('button', {name:'選擇案例',exact:true}).getAttribute('aria-expanded'), 'false');
+  assert.equal(await page.getByRole('button', {name:'選擇案例',exact:true}).evaluate(el=>el===document.activeElement), true);
+  await page.getByRole('button', {name:'選擇案例',exact:true}).click();
+  await page.getByRole('button', { name: '新增案例', exact: true }).click();
+  await page.getByRole('button', { name: '儲存案例', exact: true }).click();
+  await page.getByRole('alert').filter({ hasText: '請填寫案例名稱' }).waitFor();
+  await page.getByRole('textbox', { name: '案例名稱', exact: true }).fill('會員表單');
+  await page.getByRole('textbox', { name: '測試網址', exact: true }).fill('https://test.example.com/form');
+  await page.getByRole('button', { name: '測試設定', exact: true }).click();
+  await page.getByRole('checkbox', { name: 'WebKit', exact: true }).check();
+  await page.getByRole('checkbox', { name: '超長中文', exact: true }).check();
+  await page.getByRole('textbox', { name: '測試需求', exact: true }).fill('表單有 form 角色，確認可見。');
+  await page.getByRole('button', { name: '請 AI 建議腳本', exact: true }).click();
+  await page.getByRole('region', { name: 'AI 腳本建議', exact: true }).waitFor();
+  const request = await page.evaluate(() => window.calls[0]);
+  assert.equal(request.url, '/api/llm'); assert.equal(request.body.projectId, 'p'); assert.equal(request.body.purpose, 'author');
+  assert.match(request.body.messages.at(-1).content, /沒有瀏覽器、DOM/);
+  assert.equal(await page.getByRole('textbox', { name: 'Playwright TypeScript 程式碼', exact: true }).inputValue(), '');
+  assert.equal(await page.getByRole('button', { name: '儲存案例', exact: true }).isDisabled(), true);
+  await page.getByRole('button', { name: '套用建議', exact: true }).click();
+  await page.getByRole('tab', { name: '流程預覽', exact: true }).click(); await page.getByRole('listitem').filter({ hasText: '檢查表單' }).waitFor();
+  await page.getByRole('button', { name: '儲存案例', exact: true }).click(); await page.getByText('已儲存在此瀏覽器 · 草稿未驗證', { exact: true }).waitFor();
+  await page.getByRole('button', { name: '返回畫面', exact: true }).click(); await page.getByRole('button', { name: '選擇案例', exact: true }).click(); await page.getByRole('checkbox', { name: '選取 會員表單', exact: true }).check();
+  await page.getByText('1 個案例 · 4 個情境', { exact: true }).waitFor();
+  assert.equal(await page.getByRole('button', { name: '開始批次執行' }).isDisabled(), true);
+  await page.reload(); await page.getByRole('button', { name: '選擇案例', exact: true }).click(); await page.getByRole('button', { name: '編輯 會員表單', exact: true }).click(); assert.equal(await page.getByRole('button',{name:'測試設定',exact:true}).getAttribute('aria-expanded'),'false');
+  assert.match(await page.getByRole('textbox', { name: 'Playwright TypeScript 程式碼', exact: true }).inputValue(), /檢查表單/);
+  assert.equal(await page.getByRole('article', { name: '你的訊息', exact: true }).count(), 1);
+  await page.evaluate(() => window.replyDelay = 250);
+  await page.getByRole('textbox', { name: '測試需求', exact: true }).fill('修改腳本');
+  await page.getByRole('button', { name: '請 AI 建議腳本', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Playwright TypeScript 程式碼', exact: true }).fill('// 人工修改');
+  // Ensure the mocked response differs from the source captured for this request.
+  await page.getByRole('status').filter({ hasText: '正在整理腳本建議' }).waitFor({ state: 'hidden' });
+  // The first repeated suggestion is identical to its base and produces no proposal.
+  await page.getByRole('textbox', { name: '測試需求', exact: true }).fill('產生建議');
+  await page.getByRole('button', { name: '請 AI 建議腳本', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Playwright TypeScript 程式碼', exact: true }).fill('// 較新的人工修改');
+  await page.getByRole('region', { name: 'AI 腳本建議', exact: true }).waitFor();
+  assert.equal(await page.getByRole('button', { name: '套用建議', exact: true }).isDisabled(), true);
+  await page.getByRole('button', { name: '取消建議', exact: true }).click();
+  await page.evaluate(() => window.tryNavigate());
+  await page.getByRole('dialog', { name: '尚有未儲存內容' }).waitFor();
+  assert.equal(await page.evaluate(() => !!window.navigated), false);
+  await page.getByRole('button', { name: '繼續編輯', exact: true }).click();
+  await page.getByRole('button', { name: '新案例', exact: true }).click();
+  await page.getByRole('dialog', { name: '尚有未儲存內容' }).waitFor();
+  await page.keyboard.press('Escape'); assert.equal(await page.getByRole('dialog').isVisible(), false);
+  await page.getByRole('button', { name: '新案例', exact: true }).click(); await page.getByRole('button', { name: '放棄修改並繼續' }).click();
+  assert.equal(await page.getByRole('article', { name: '你的訊息', exact: true }).count(), 0);
+  assert.equal(await page.getByRole('textbox', { name: '案例名稱', exact: true }).inputValue(), '');
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 1000 });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'no horizontal overflow at ' + width);
+  }
+  await page.getByRole('tab', { name: '網頁畫面', exact: true }).focus(); await page.keyboard.press('End');
+  assert.equal(await page.getByRole('tab', { name: '流程預覽', exact: true }).getAttribute('aria-selected'), 'true');
+  await page.keyboard.press('Home'); assert.equal(await page.getByRole('tab', { name: '網頁畫面', exact: true }).getAttribute('aria-selected'), 'true');
+  await page.getByRole('textbox', {name:'案例名稱',exact:true}).fill('未儲存的新稿');
+  await page.getByRole('button', { name: '返回畫面', exact: true }).click();
+  await page.getByRole('dialog', {name:'尚有未儲存內容'}).waitFor();
+  await page.getByRole('button', {name:'繼續編輯',exact:true}).click();
+  assert.equal(await page.getByRole('textbox', {name:'案例名稱',exact:true}).inputValue(),'未儲存的新稿');
+  await page.getByRole('button', {name:'返回畫面',exact:true}).click();
+  await page.getByRole('button', {name:'放棄修改並繼續',exact:true}).click();
+  for (const width of [320,390,768,1440]) {
+    await page.setViewportSize({width,height:1000});
+    await page.getByRole('button',{name:'選擇案例',exact:true}).click();
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'picker fits '+width);
+    await page.keyboard.press('Escape');
+  }
+  await page.goto(url + '?project=other'); await page.waitForFunction(()=>localStorage.getItem('archify.e2e-plans.v1.other')===null); assert.equal(await page.getByRole('button', { name: '編輯 會員表單', exact: true }).count(), 0);
+  await page.evaluate(() => localStorage.setItem('archify.web-playwright.v1.other', '{broken'));
+  await page.reload(); await page.getByRole('alert').waitFor();
+  await page.getByRole('button', { name: '選擇案例', exact: true }).click(); await page.getByRole('button', { name: '新增案例', exact: true }).click(); assert.equal(await page.getByRole('button', { name: '儲存案例', exact: true }).isDisabled(), true);
+  assert.equal(await page.evaluate(() => localStorage.getItem('archify.web-playwright.v1.other')), '{broken');
+  await page.evaluate(() => localStorage.setItem('archify.e2e-plans.v1.damaged', '{legacy-broken'));
+  await page.goto(url+'?project=damaged');
+  await page.getByRole('alert').filter({hasText:'舊 Web 草稿清理失敗'}).waitFor();
+  assert.equal(await page.evaluate(()=>localStorage.getItem('archify.e2e-plans.v1.damaged')),'{legacy-broken');
+  assert.deepEqual(errors, []);
+  console.log('PASS: validation, real AI request contract via mock, explicit apply, stale reply protection, local persistence/chat isolation, legacy Web-only cleanup preserving Android and other projects, collapsed picker/environment/settings, return to screen, 4-scenario matrix, unconnected execution disabled, unsaved confirmation/Escape, keyboard tabs, 320/390/768/1440 overflow, corrupt storage preserved; no page errors.');
+  console.log('Harness: ' + file + '?author');
+} finally { await browser.close(); }

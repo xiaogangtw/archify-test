@@ -12,10 +12,10 @@ import type { CatalogView, TestIntent, Feature } from './catalog';
 import { resultLabels, organizeFeaturesTask, featureTestDraftHandoff } from './catalog';
 import { useAiJob } from './useAiJob';
 import { AiJobStatus } from './AiJobStatus';
+import { WorkspaceToast } from './WorkspaceToast';
 import {
   ActionButton,
   Badge,
-  Banner,
   Disclosure,
   EmptyState,
   PageHeader,
@@ -50,7 +50,7 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
   const [notice, setNotice] = useState('');
   const [code, setCode] = useState<{ path: string; content: string }>();
 
-  const ai = useAiJob(config);
+  const ai = useAiJob(config, 'features');
 
   useEffect(() => {
     if (ai.job?.kind === 'features' && ai.job.status === 'completed') void reload();
@@ -247,6 +247,13 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
     <WorkspaceShell navigation={navigation} wide>
       <PageHeader
         title="功能地圖"
+        meta={
+          config?.ai && (
+            <span className="text-muted">
+              {`目前 AI：${config.ai.providerLabel || 'Codex'} · ${config.ai.model || '預設模型'}`}
+            </span>
+          )
+        }
         actions={
           <>
             <ActionButton
@@ -277,18 +284,24 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
         }
       />
 
-      <AiJobStatus job={ai.job} error={ai.error} onCancel={() => void ai.cancel()} />
+      <AiJobStatus
+        job={ai.job?.kind === 'features' ? ai.job : undefined}
+        error={ai.error}
+        onCancel={() => void ai.cancel()}
+        onDismiss={ai.dismiss}
+      />
 
-      {error && (
-        <Banner tone="danger" className="mb-4">
-          {error}
-        </Banner>
-      )}
-      {notice && (
-        <Banner tone="neutral" className="mb-4">
-          {notice}
-        </Banner>
-      )}
+      <WorkspaceToast
+        open={!!error || !!notice}
+        tone={error ? 'danger' : 'neutral'}
+        role={error ? 'alert' : 'status'}
+        onDismiss={() => {
+          setError('');
+          setNotice('');
+        }}
+      >
+        {error || notice}
+      </WorkspaceToast>
       {config && !config.initialized && (
         <EmptyState icon="settings" title="請先開啟「工作區設定」。" />
       )}

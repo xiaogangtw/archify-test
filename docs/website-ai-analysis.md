@@ -1,13 +1,14 @@
 # 網站 AI 分析與知識更新
 
-文件版本：1.7
+文件版本：1.8
 
-最後更新：2026-11-09
+最後更新：2026-11-11
 
 ## 修訂紀錄
 
 | 版本 | 日期 | 說明 |
 | --- | --- | --- |
+| 1.8 | 2026-11-11 | 功能分析／知識合併／候選檢索與圖片觀察改以結構化 JSON Schema 直接約束輸出（兼做圍欄容錯解析），支援切換 `codex`／`claude`／`gemini` CLI 與模型下拉／自訂選擇（圖片辨識僅支援 Codex），新增 `ai-inspect`、`ai-test`、`ai-settings` 本機契約並改採頂端置中 3 秒自動退場浮動 Toast 顯示分析中／完成／錯誤（不設關閉按鈕）；未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 1.7 | 2026-11-09 | 文件先在本機略過重複來源，唯一高度相似文字以上傳版直接更新並可還原；AI 工作結果增加 skipped／directUpdated。未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 1.6 | 2026-11-09 | 功能分析加入增量、無變更略過模型及完整回退。本機 AI 工作結果增加分析模式與頁數；未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 1.5 | 2026-11-08 | 新增每來源 10 MB、圖片附件、分段／候選檢索、原始資產與來源查看契約；新增 knowledge-source，未改產品 API、GraphQL payload、路由、守衛、導向或 DB schema。 |
@@ -45,9 +46,9 @@ AI 工作結果新增 skipped（略過來源名稱）與 directUpdated（直接�
 
 ## CLI 與資料邊界
 
-本機必須有 Codex CLI 並在終端完成 codex login。Windows npm 安裝預設找 APPDATA/npm/node_modules/@openai/codex/bin/codex.js，以 node 與獨立 args 呼叫；其他系統用 PATH 的 codex。平台 .env 可選 ARCHIFY_AI_CLI（codex.exe 或 codex.js 絕對路徑）、ARCHIFY_AI_MODEL（模型名稱）。空白模型使用 Codex 預設；為限制工具與外部整合，工作不載入使用者 config.toml，故不沿用自訂 provider／profile／MCP。登入仍使用使用者本機憑證。
+本機需安裝並登入選用的 AI CLI（支援 `codex`、`claude`、`gemini`，預設 `codex`）。Windows npm 安裝預設找 `APPDATA/npm/node_modules/@openai/codex/bin/codex.js`、`@anthropic-ai/claude-code/cli.js` 或 `@google/gemini-cli/dist/index.js`，以 node 與獨立 args 呼叫；其他系統與原生 binary 依 `PATH` 尋找。可在工作區設定第 1 步（或測試專案 `.env`／平台 `.local/ai.json`）指定 `ARCHIFY_AI_PROVIDER`（`codex`／`claude`／`gemini`）、可選的 `ARCHIFY_AI_CLI`（完整執行檔／entry 路徑）與 `ARCHIFY_AI_MODEL`（模型名稱；第 1 步 `Dropdown` 會讀取 `$CODEX_HOME/models_cache.json` 等本機快取模型清單，亦支援自訂輸入），優先順序為程序環境變數 > 測試專案 `.env` > 平台 `.env` > `.local/ai.json`。空白模型使用工具預設；為限制工具與外部整合，Codex 不載入使用者 `config.toml`，Claude Code 停用工具與嚴格空 MCP 設定，Gemini CLI 以 `deny.toml` 與本機停用工具設定隔離（偵測系統 Gemini `.toml` 政策則拒絕執行）。圖片知識辨識僅支援 Codex CLI；選用 Claude／Gemini 時上傳圖片會明示拒絕。登入仍使用使用者本機憑證，錯誤回報不輸出原始 stderr 或模型回應。
 
-呼叫為 exec、stdin、ephemeral、read-only、JSON schema／最後訊息輸出，shell:false、Windows 隱藏視窗；工作目錄是自建暫存目錄，僅放 schema、結果與本次已驗證的圖片附件；結束清除。圖片用 --image 附加，不開放任意路徑給瀏覽器。停用 shell_tool、unified_exec、apps、browser_use、computer_use、multi_agent、skill_search、web_search；偵測工具事件則終止，prompt 要求不讀其他檔案、不呼叫工具。這是減少工具權限的呼叫設定，不宣稱替代完整 OS 資料隔離或能控制模型服務的資料保留政策。CLI 版本需支援這些選項；錯誤回報核對登入／模型／連線，不輸出原始 stderr 或模型回應。
+呼叫均採非 shell（`shell:false`）、Windows 隱藏視窗、工作目錄為自建暫存目錄且結束清除；Codex 另以 `read-only` sandbox、停用 `shell_tool`／`unified_exec`／`apps`／`browser_use`／`computer_use`／`multi_agent`／`skill_search`／`web_search` 與 `--output-schema` 執行。這是減少工具權限的呼叫設定，不宣稱替代完整 OS 資料隔離或能控制模型服務的資料保留政策。CLI 版本需支援這些選項；Claude Code 與 Gemini CLI 通道目前僅以子程序模擬測試驗證，尚未執行真實本機 CLI 端對端驗收。
 
 本機 CLI 不代表本機離線模型：來源與知識會交給 Codex 使用的模型服務，可能有帳號用量／費用。網站在分析入口明示此行為；此次使用者已要求串接，因此不加重複審批。
 
@@ -57,13 +58,13 @@ AI 工作結果新增 skipped（略過來源名稱）與 directUpdated（直接�
 
 ## 工作狀態與儲存
 
-ai-jobs.mjs 每個本機 workspace 同時一份 AI 工作，保留最近 20 份狀態，瀏覽器每 1.5 秒讀取。狀態為 running／completed／failed／cancelled；只顯示安全階段與摘要，不展示模型原始文字或 stderr。頁面重載可查回記憶體中的工作，服務重啟則需重做，不做持久排程。AI 執行中拒絕切換專案；其他資料若在分析期間改動，套用會核對 revision/hash 並拒絕過期結果。
+ai-jobs.mjs 每個本機 workspace 同時一份 AI 工作，保留最近 20 份狀態，瀏覽器每 1.5 秒讀取。狀態為 running／completed／failed／cancelled；只顯示安全階段與摘要，不展示模型原始文字或 stderr。工作區介面改採頂端置中浮動 Toast 顯示分析中（可取消），完成與失敗／錯誤 Toast 均不設關閉按鈕並於 3 秒後自動退場（重載頁面僅接續仍在執行中的任務而不重現舊失敗）。服務重啟則需重做，不做持久排程。AI 執行中拒絕切換專案或修改 CLI 設定；其他資料若在分析期間改動，套用會核對 revision/hash 並拒絕過期結果。
 
 允許分析階段取消，超過 10 分鐘或 stdout 超過 4 MB 會終止；Windows 使用本次子程序 PID 的 taskkill /T，其他系統 kill 本次子程序。儲存開始後拒絕取消，避免顯示已取消卻其實完成套用。AI 原始結果只在自建暫存檔讀取並解析，功能合法提案與知識更新結果按既有備份契約保留於獨立專案，不寫入平台 Git。
 
 圖片先以模型辨識可見文字、相對位置、排列及顏色；不推測點擊 URL、postback、後端規則或精確 CSS。辨識結果保留待確認問題；平台強制標記圖片用途未指定，不直接當作預期或通過證據。上傳檢查實際圖片格式與副檔名一致，單邊最多 12000 像素、總共 4000 萬像素；不接受 SVG／GIF／PDF，也不分析動畫或圖外內容。
 
-JSON schema 外層為 resultJson 字串，內層由 feature-map validator 或 knowledge applyAi 嚴格檢查。知識每份輸出必須交代 inputIndices、有效 replaces、可選 keepId、分類與功能編號；所有新文件都要被交代，舊 ID 不可被多份結果重複取代。平台自己備份、改寫文件與索引，模型沒有直接刪改框架的授權。
+功能分析、知識合併、候選檢索與圖片觀察皆傳遞嚴格 JSON Schema 給 `--output-schema`（向下相容未帶 schema 的 `{ resultJson }` 包裝），並支援剝除意外 Markdown 程式碼圍欄及空輸出安全診斷，最後仍由 feature-map validator 或 knowledge applyAi 嚴格檢查。知識每份輸出必須交代 inputIndices、有效 replaces、可選 keepId、分類與功能編號；所有新文件都要被交代，舊 ID 不可被多份結果重複取代。平台自己備份、改寫文件與索引，模型沒有直接刪改框架的授權。
 
 ## 原始來源與可攜性
 
@@ -79,6 +80,9 @@ JSON schema 外層為 resultJson 字串，內層由 feature-map validator 或 kn
 
 | 端點 | 行為 |
 | --- | --- |
+| POST /local-api/ai-inspect | 可選 aiCli；檢查 Codex CLI 安裝路徑、版本與 `codex login status` |
+| POST /local-api/ai-test | 可選 aiCli、aiModel；以最小結構化 JSON 測試 CLI 連線與模型可用性 |
+| POST /local-api/ai-settings | aiCli、aiModel；驗證後保存至 `.local/ai.json` 並同步至已綁定測試專案 `.env` |
 | POST /local-api/ai-features-start | 無輸入，回傳工作 ID；背景準備證據、AI 整理並驗證套用 |
 | POST /local-api/ai-knowledge-start | documents（name、base64），原有 UTF-8 content 仍相容；預檢後回傳工作 ID |
 | POST /local-api/knowledge-source | id、sha256；限有效知識引用的原始資產，回傳名稱、MIME、base64，檢查路徑／大小／實際 hash |

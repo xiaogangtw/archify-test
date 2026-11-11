@@ -60,7 +60,7 @@ npm run docs:check
 
 ## 首次設定與 Agent 知識
 
-開啟本機平台後，依三步引導選擇前端專案、獨立測試專案位置、匯入知識。可使用 Windows 資料夾視窗或貼上完整路徑；路徑設定即時套用，其他進階選項保存在測試專案 .env。既有測試與認證不覆寫，新專案先 npm ci。
+開啟本機平台後，依四步引導依序設定本機 AI CLI（切換 Codex／Claude Code／Gemini CLI、偵測狀態、挑選／自訂模型、連線測試與直接儲存）、選擇前端來源、選擇獨立測試專案位置、匯入知識。可使用 Windows 資料夾視窗或貼上完整路徑；CLI 偏好先保存於平台 `.local/ai.json` 並於選定專案後同步測試專案 `.env`，路徑設定即時套用，其他進階選項保存在測試專案 .env。既有測試與認證不覆寫，新專案先 npm ci。
 
 側欄「Agent 知識庫」可匯入 UTF-8 .md／.txt 或輸入文字，查看、搜尋與封存。內容保存測試專案 knowledge/，可與 tests／skills 一起 Git 版控。在自己的 AI 工具開啟測試專案，先讀 AGENTS.md 與 knowledge/README.md；平台不自動傳送內容給模型。詳見 docs/local-workspace.md。
 
@@ -78,7 +78,7 @@ npm run docs:check
 
 ## 網站 AI 操作
 
-功能地圖可直接按「AI 分析功能」，專案知識可匯入 MD／HTML，先本機略過相同內容，唯一高度相似文字直接更新為本次上傳版，其餘由 AI 去重更新，不需外部對話代做。先在本機安裝 Codex CLI 並 codex login；可在平台 .env 設 ARCHIFY_AI_CLI／ARCHIFY_AI_MODEL。分析可能使用模型服務用量；取代知識有備份及還原，原始碼與測試不由 AI 直接改動。詳見 [網站 AI 分析](docs/website-ai-analysis.md)。
+功能地圖可直接按「AI 分析功能」，專案知識可匯入 MD／HTML／圖片，先本機略過相同內容，唯一高度相似文字直接更新為本次上傳版，其餘由 AI 去重更新，不需外部對話代做；分析進度、完成與錯誤以 3 秒自動退場的浮動 Toast 呈現（分析中保留取消按鈕，完成／錯誤不設關閉按鈕）。先在本機安裝並登入 Codex、Claude Code 或 Gemini CLI（圖片知識辨識目前僅 Codex 支援）；可在工作區設定第 1 步（或測試專案 `.env`）設 ARCHIFY_AI_PROVIDER／ARCHIFY_AI_CLI／ARCHIFY_AI_MODEL，側欄與功能地圖會顯示目前生效的 CLI 與模型。分析可能使用模型服務用量；取代知識有備份及還原，原始碼與測試不由 AI 直接改動。詳見 [網站 AI 分析](docs/website-ai-analysis.md)。
 
 ## 案例規劃與閱讀
 
@@ -90,6 +90,6 @@ npm run docs:check
 
 測試報告頁分 API／畫面；畫面可設定下次執行是否保留截圖，關閉仍產生 JSON／HTML／TXT。一般頁面在前端專案以 npm run dev -- --host 127.0.0.1 --port 5174 --strictPort 啟動，獨立測試專案設 WEB_BASE_URL=http://127.0.0.1:5174，BFF_BASE_URL 保持中間層網址。網頁使用 write-web-tests，推播使用 write-push-tests，統一報告使用 playwright-test-report skill。報告預設 reports/api／reports/ui，舊報告仍可讀。Android 面板只準備環境；本輪不開 LINE、不擷取手機畫面或發推播。詳見 [畫面測試與報告](docs/ui-testing-reports.md)。
 
-初次開啟必須完成三步：選 Git／本機前端來源、獨立測試位置、上傳 PRD／業務流程文件；完成前無法進入其他頁面。Git 只下載，不管理版控或 token；已有完整設定不重複引導。
+初次開啟必須完成四步：設定／確認本機 AI CLI、選 Git／本機前端來源、獨立測試位置、上傳 PRD／業務流程文件；完成前無法進入其他頁面。Git 只下載，不管理版控或 token；已有完整設定不重複引導。
 
 新專案網頁測試預設逐操作保存證據：使用共用 web-test fixture，每次常用操作及畫面斷言有角色／順序／結果截圖；特殊操作以 uiStep 明示，執行前 check:ui-evidence 檢查。超量分卷保留全圖，既有專案可用 scripts/upgrade-operation-evidence.mjs 備份升級，詳見 [報告契約](docs/ui-testing-reports.md)。

@@ -1,5 +1,7 @@
 # 決策紀錄
 
+- [四步工作區設定前置 AI CLI、非秘密 .local 暫存與全面 Toast 通知](2026-11-11-cli-setup-and-ai-toast.md)
+
 - [測試專案保存本機環境設定](2026-11-09-project-local-environment.md)
 
 - [初始設定受控 Git 下載與守衛](2026-11-08-onboarding-clone.md)

@@ -193,6 +193,20 @@ const bannerTone: Record<Tone, string> = {
   danger: 'border-danger bg-danger-soft text-danger',
 };
 
+const elevatedTone: Record<Tone, string> = {
+  neutral: 'border-line-strong bg-surface text-ink shadow-popover',
+  success: 'border-success/50 bg-surface text-ink shadow-popover',
+  warning: 'border-warning/50 bg-surface text-ink shadow-popover',
+  danger: 'border-danger/60 bg-surface text-ink shadow-popover',
+};
+
+const iconTone: Record<Tone, string> = {
+  neutral: 'text-muted',
+  success: 'text-success',
+  warning: 'text-warning',
+  danger: 'text-danger',
+};
+
 export function Banner({
   tone = 'neutral',
   elevated = false,
@@ -208,12 +222,7 @@ export function Banner({
   action?: ReactNode;
   className?: string;
 }) {
-  const toneClass =
-    elevated && tone === 'neutral'
-      ? 'border-line-strong bg-brand-soft text-ink shadow-popover'
-      : elevated
-        ? cx(bannerTone[tone], 'shadow-popover')
-        : bannerTone[tone];
+  const toneClass = elevated ? elevatedTone[tone] : bannerTone[tone];
   return (
     <div
       role={role || (tone === 'danger' ? 'alert' : 'status')}
@@ -226,7 +235,7 @@ export function Banner({
       <div className="flex min-w-0 flex-1 items-start gap-2.5">
         <WorkspaceIcon
           name={tone === 'danger' || tone === 'warning' ? 'alert' : tone === 'success' ? 'check' : 'sparkles'}
-          className="mt-0.5 h-4 w-4"
+          className={cx('mt-0.5 h-4 w-4', elevated && iconTone[tone])}
         />
         <div className="min-w-0 flex-1">{children}</div>
       </div>

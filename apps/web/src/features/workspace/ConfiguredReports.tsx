@@ -3,7 +3,8 @@ import { settings, operation } from './client';
 import type { ReportFile } from './client';
 import { parseReport } from '../reader/report';
 import { renderHtml } from '../../../../../test-project/framework/html.mjs';
-import { ActionButton, Badge, Banner, SearchField, Surface } from '../../components/ui/ds';
+import { WorkspaceToast } from './WorkspaceToast';
+import { ActionButton, Badge, SearchField, Surface } from '../../components/ui/ds';
 
 type Props = {
   onOpen: (value: unknown) => void;
@@ -220,13 +221,11 @@ export function ConfiguredReports({ onOpen, onBusy, onEmpty, kind, testType }: P
       {!busy && !rows.length && !error && (
         <p className="text-muted">目前沒有符合此類型的報告。</p>
       )}
-      {error && (
-        <Banner tone="danger">
-          {error}
-          {' 請重新整理。'}
-          {selected ? ' 原報告已保留。' : ''}
-        </Banner>
-      )}
+      <WorkspaceToast open={!!error} tone="danger" role="alert" onDismiss={() => setError('')}>
+        {error}
+        {' 請重新整理。'}
+        {selected ? ' 原報告已保留。' : ''}
+      </WorkspaceToast>
     </Surface>
   );
 }

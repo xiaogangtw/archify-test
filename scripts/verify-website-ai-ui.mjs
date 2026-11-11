@@ -7,7 +7,8 @@ import { fixture } from '../services/local-workspace/test-support.mjs';
 import { createHandler } from '../services/local-workspace/plugin.mjs';
 import { scriptEvidence, caseEvidence } from '../test-project/support/script-evidence.mjs';
 const require = createRequire(import.meta.url);
-const { chromium } = require('../.local/gate-deps/node_modules/playwright');
+let chromium;
+try { ({ chromium } = require('playwright')); } catch { ({ chromium } = require('../.local/gate-deps/node_modules/playwright')); }
 assert.equal(process.env.DS_REQUIRE_BROWSER, '1');
 const f = await fixture();
 await f.workspace.initialize();await f.enableUi();await mkdir(join(f.source,'src/pages'),{recursive:true});await writeFile(join(f.source,'src/pages/CardPage.tsx'),"import {list} from '../api';export default function CardPage(){return null;}");await writeFile(join(f.source,'src/routes.tsx'),"import React from 'react';const Card=React.lazy(()=>import('./pages/CardPage'));export const routes=[{path:'/cards',component:Card,title:'名片'}];");const analysis=await f.workspace.scan();
@@ -18,9 +19,11 @@ await f.workspace.importKnowledge([{ name: '名片規則.md', content: '# 名片
 const {createWorkspace}=await import('../services/local-workspace/workspace.mjs');
 let evidence;
 let knowledgeCalls=0;
+let failFeatures=false;
 const workspace=createWorkspace(f.config,{aiRunner:async(_config,prompt)=>{
  await new Promise(resolve=>setTimeout(resolve,250));
  if(prompt.includes('前端功能分析器')){
+ if(failFeatures)throw new Error('AI 未回傳合法 JSON，原資料保留。');
  const e=JSON.parse(await readFile(join(f.project,'analysis/feature-evidence.json'),'utf8'));
  return {schemaVersion:1,sourceHash:e.sourceHash,catalogRevision:e.catalogRevision,generatedAt:new Date().toISOString(),features:[{id:'F-CARD',name:'名片管理',description:'來源證據的名片功能',evidence:'code',sources:[{path:'src/pages/CardPage.tsx',line:1}],pageIds:e.pages.map(p=>p.id),apiIds:e.apis.map(a=>a.id),questions:[]}],relations:[],unassignedPageIds:[],unassignedApiIds:[],notes:[]};
  }
@@ -54,6 +57,17 @@ try {
  await page.goto('http://127.0.0.1:5191/?view=catalog');
  await page.getByRole('button',{name:'AI 分析功能',exact:true}).click();
  await page.getByRole('region',{name:'AI 分析狀態'}).getByRole('status').filter({hasText:'已完成'}).waitFor();
+ assert.equal(await page.getByRole('button',{name:'關閉通知'}).count(),0);
+ await page.getByRole('region',{name:'AI 分析狀態'}).waitFor({state:'detached',timeout:4500});
+ failFeatures=true;
+ await writeFile(join(f.source,'src/pages/CardPage.tsx'),"import {list} from '../api';export default function CardPage(){return 'updated';}");
+ await page.getByRole('button',{name:'AI 分析功能',exact:true}).click();
+ await page.getByRole('region',{name:'AI 分析狀態'}).getByRole('alert').filter({hasText:'AI 未回傳合法 JSON'}).waitFor();
+ assert.equal(await page.getByRole('button',{name:'關閉通知'}).count(),0);
+ await page.getByRole('region',{name:'AI 分析狀態'}).waitFor({state:'detached',timeout:4500});
+ await page.reload();
+ assert.equal(await page.getByRole('region',{name:'AI 分析狀態'}).count(),0);
+ failFeatures=false;
  await page.getByRole('button',{name:'功能：名片管理',exact:true}).click();
  await page.getByRole('button',{name:'前端頁面：名片',exact:true}).click();
  await page.getByRole('region',{name:'程式碼預覽'}).locator('pre').waitFor();

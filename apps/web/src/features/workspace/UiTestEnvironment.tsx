@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { operation, settings } from './client';
 import type { LocalConfig } from './client';
-import { ActionButton, Badge, Banner, Disclosure, Surface } from '../../components/ui/ds';
+import { WorkspaceToast } from './WorkspaceToast';
+import { ActionButton, Badge, Disclosure, Surface } from '../../components/ui/ds';
 
 interface Settings {
   screenshots: boolean;
@@ -169,8 +170,17 @@ export function UiTestEnvironment() {
         </div>
       </Disclosure>
 
-      {notice && <Banner tone="neutral">{notice}</Banner>}
-      {error && <Banner tone="danger">{error}</Banner>}
+      <WorkspaceToast
+        open={!!error || !!notice}
+        tone={error ? 'danger' : 'neutral'}
+        role={error ? 'alert' : 'status'}
+        onDismiss={() => {
+          setError('');
+          setNotice('');
+        }}
+      >
+        {error || notice}
+      </WorkspaceToast>
     </Surface>
   );
 }

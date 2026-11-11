@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { operation, settings } from './client';
 import type { Analysis, LocalConfig } from './client';
 import { WorkspaceDialog } from './WorkspaceDialog';
+import { WorkspaceToast } from './WorkspaceToast';
 import {
   ActionButton,
   Badge,
@@ -181,16 +182,17 @@ export function SourceWorkspace({
         }
       />
 
-      {error && (
-        <Banner tone="danger" className="mb-5">
-          {error}
-        </Banner>
-      )}
-      {notice && (
-        <Banner tone="neutral" className="mb-5">
-          {notice}
-        </Banner>
-      )}
+      <WorkspaceToast
+        open={!!error || !!notice}
+        tone={error ? 'danger' : 'neutral'}
+        role={error ? 'alert' : 'status'}
+        onDismiss={() => {
+          setError('');
+          setNotice('');
+        }}
+      >
+        {error || notice}
+      </WorkspaceToast>
       {lastArchive && (
         <Banner
           tone="neutral"

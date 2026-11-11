@@ -13,6 +13,10 @@ export async function loadConfig(root = platformRoot, overrides = process.env) {
   const pointer = resolve(root, '.local/workspace.json'); await noLinks(pointer);
   try { locator = JSON.parse(await readFile(pointer, 'utf8')); }
   catch (e) { if (e.code !== 'ENOENT') throw new Error('無法讀取本機專案定位。'); }
+  let localAi = {};
+  const aiPointer = resolve(root, '.local/ai.json'); await noLinks(aiPointer);
+  try { localAi = JSON.parse(await readFile(aiPointer, 'utf8')); }
+  catch (e) { if (e.code !== 'ENOENT') throw new Error('無法讀取本機 AI 設定。'); }
   const project = overrides.ARCHIFY_TEST_PROJECT_DIR?.trim() || locator.projectRoot || local.ARCHIFY_TEST_PROJECT_DIR?.trim();
   let projectEnv = {};
   if (project) {
@@ -21,11 +25,25 @@ export async function loadConfig(root = platformRoot, overrides = process.env) {
     catch (e) { if (e.code !== 'ENOENT') throw new Error('無法讀取測試專案 .env。'); }
   }
   const env = { ...local, ...projectEnv, ...overrides };
+  const pickAi = (envKey, localKey) => {
+    if (overrides[envKey] !== undefined) { const v = overrides[envKey].trim(); return { value: v, source: v ? 'env' : 'default' }; }
+    if (projectEnv[envKey] !== undefined) { const v = projectEnv[envKey].trim(); return { value: v, source: v ? 'project' : 'default' }; }
+    if (local[envKey] !== undefined) { const v = local[envKey].trim(); return { value: v, source: v ? 'platform' : 'default' }; }
+    const v = typeof localAi[localKey] === 'string' ? localAi[localKey].trim() : '';
+    return { value: v, source: v ? 'local' : 'default' };
+  };
+  const aiProviderRaw = pickAi('ARCHIFY_AI_PROVIDER', 'aiProvider');
+  const aiProvider = (aiProviderRaw.value || 'codex').toLowerCase();
+  if (!['codex', 'claude', 'gemini'].includes(aiProvider)) {
+    throw new Error('ARCHIFY_AI_PROVIDER 僅支援 codex、claude 或 gemini。');
+  }
+  const aiCli = pickAi('ARCHIFY_AI_CLI', 'aiCli'), aiModel = pickAi('ARCHIFY_AI_MODEL', 'aiModel');
   const source = env.ARCHIFY_SOURCE_DIR?.trim();
   const config = { platformRoot: resolve(root), sourceRoot: source ? resolve(root, source) : '', projectRoot: project ? resolve(root, project) : '',
     analysisDir: env.ARCHIFY_ANALYSIS_DIR || 'analysis', apiDir: env.ARCHIFY_API_TEST_DIR || 'tests/api', reportDir: env.ARCHIFY_REPORT_DIR || 'reports',
     targetBaseUrl: env.BFF_BASE_URL ?? env.ARCHIFY_TARGET_BASE_URL ?? '',
-    aiCli: env.ARCHIFY_AI_CLI || '', aiModel: env.ARCHIFY_AI_MODEL || '', androidSdk: env.ARCHIFY_ANDROID_SDK || '', appiumCli: env.ARCHIFY_APPIUM_CLI || '' };
+    aiProvider, aiProviderSource: aiProviderRaw.value ? aiProviderRaw.source : 'default',
+    aiCli: aiCli.value, aiModel: aiModel.value, aiCliSource: aiCli.source, aiModelSource: aiModel.source, androidSdk: env.ARCHIFY_ANDROID_SDK || '', appiumCli: env.ARCHIFY_APPIUM_CLI || '' };
   if (config.projectRoot && (inside(root, config.projectRoot) || inside(config.projectRoot, root))) throw new Error('測試專案必須完全獨立於平台目錄，請修改 ARCHIFY_TEST_PROJECT_DIR。');
   if (config.projectRoot && config.sourceRoot && (inside(config.sourceRoot, config.projectRoot) || inside(config.projectRoot, config.sourceRoot))) throw new Error('來源與測試專案目錄不可互相包含。');
   for (const key of ['analysisDir', 'apiDir', 'reportDir']) {

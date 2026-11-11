@@ -1,6 +1,6 @@
 # 本機來源分析與獨立測試專案
 
-文件版本：2.28
+文件版本：2.29
 
 最後更新：2026-11-11
 
@@ -14,6 +14,7 @@
 
 | 版本 | 日期 | 說明 |
 | --- | --- | --- |
+| 2.29 | 2026-11-11 | 初始設定／工作區設定前置第 1 步「AI CLI 設定」（四步引導），支援切換 Codex／Claude Code／Gemini、模型下拉／自訂選擇與直接儲存，新增 `/local-api/ai-inspect`、`ai-test`、`ai-settings` 與 `.local/ai.json` 非秘密暫存及 `GET /local-api/config` `ai` 摘要，側欄顯示目前 AI 與模型，工作區錯誤與辨識中／分析狀態改以頂端置中 3 秒自動退場浮動 Toast 呈現；未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 2.28 | 2026-11-11 | 案例規劃 `steps` 擴充選填 `data` 且允許前置／輸入步驟 `expected` 留空，測試流程表格（`?view=flows`）改採四欄橫向步驟矩陣與原生折疊摘要，並同步更新案例規劃編輯與 AI 引導規範；未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 2.27 | 2026-11-11 | 新專案 `initialize()` 改寫入空 `test-cases/catalog.json`，且 `setup()` 於 `schemaVersion: 2` 專案自動非覆寫產生單支 API 模組與 `.spec.ts` 草稿；未改路由、守衛、導向、API、GraphQL payload 或 DB schema。 |
 | 2.26 | 2026-11-11 | 初始設定第一步點選「本機資料夾」直接開啟電腦資料夾選擇器（移除「選擇前端專案」按鈕與開啟中橫幅），第三步知識整理改採單一頂端橫幅 toast 並於完成後消失；未改路由、守衛、導向、API、GraphQL payload 或 DB schema。 |
@@ -68,7 +69,7 @@ Node.js 22.18 以上，平台先 npm ci，再 npm ci --prefix apps/web。測試�
 | ARCHIFY_REPORT_DIR | 測試專案內要顯示的報告資料夾，預設 reports |
 | BFF_BASE_URL | 非秘密受測 URL，僅填入新專案 .env.example，不自動執行或保存認證 |
 
-來源／專案可為絕對路徑或相對平台根目錄。其餘資料夾為專案內相對路徑，不可重疊、離開專案或使用保留目錄；分析與報告不得放在 tests/。UI 可調整本次來源子資料夾與案例輸出，先確認位置再掃描；修改位置後必須重掃才能產生。讀取設定不會修改 .env；網頁工作區設定將來源與子目錄保存測試專案 .env，平台 .local/workspace.json 僅保存 projectRoot 並排除 Git；舊工作區環境值成功保存後移出平台 .env，既有測試專案值優先保留並立即套用，手動修改測試專案 .env 後需重啟服務。程序環境變數優先於 .env。
+來源／專案可為絕對路徑或相對平台根目錄。其餘資料夾為專案內相對路徑，不可重疊、離開專案或使用保留目錄；分析與報告不得放在 tests/。UI 可調整本次來源子資料夾與案例輸出，先確認位置再掃描；修改位置後必須重掃才能產生。讀取設定不會修改 .env；網頁工作區設定將來源與子目錄保存測試專案 .env，平台 .local/workspace.json 僅保存 projectRoot、.local/ai.json 保存選用非秘密 `aiProvider`／`aiCli`／`aiModel` 並排除 Git（選定或重連測試專案時同步寫入 .env）；舊工作區環境值成功保存後移出平台 .env，既有測試專案值優先保留並立即套用，手動修改測試專案 .env 後需重啟服務。程序環境變數優先於 .env。
 
 初始化複製 api、framework、support、config、skills、memory、knowledge、fixtures、requests 與必要套件／文件，tests 僅交付 api／flows／ui／web／mobile 的空目錄標記，`test-cases/catalog.json` 一律初始化為空的 `{ schemaVersion: 1, features: [], cases: [] }`（不複製範本自測、參考案例或產品測試），建立 archify.config.json、.env.example 和案例目錄；不複製平台、原始碼、秘密或範例產品測試。`setup()` 初始化後掃描前端，對 `schemaVersion: 2` 且具備 `support/api-client.mts` 的專案自動非覆寫補齊單支 API 模組與 `.spec.ts` 草稿。既有相同範本可接續，衝突先拒絕，不覆寫。版本標記已存在時不自動更新框架；後續框架更新需人工管理。新專案使用鎖版的 @playwright/test，執行前需在獨立專案 npm ci，離開平台後仍可 npm test／npm run flow。報告位置同時寫入專案 archify.config.json；後續變更須與平台設定同步。
 
@@ -98,7 +99,10 @@ HTTP 依方法與端點去重；不同 payload 共用同接口時保留第一份
 | POST /local-api/knowledge-document | id；純文字與 metadata |
 | POST /local-api/knowledge-import | documents: name、content；預檢後非覆寫匯入 |
 | POST /local-api/knowledge-archive | id；移往 knowledge/archive 並移除清單 |
-| GET /local-api/config | 非秘密來源／專案／子目錄設定、初始化狀態、knowledgeCount、當次 session |
+| GET /local-api/config | 非秘密來源／專案／子目錄設定、初始化狀態、knowledgeCount、當次 session 與 `ai` 非秘密摘要 |
+| POST /local-api/ai-inspect | 檢查本機 Codex CLI 安裝路徑、版本與登入狀態 |
+| POST /local-api/ai-test | 以最小結構化 JSON 驗證 CLI 與模型連線 |
+| POST /local-api/ai-settings | 驗證並保存非秘密 `aiCli`／`aiModel` 至 `.local/ai.json` 及已綁定測試專案 `.env` |
 | POST /local-api/initialize | 空物件；初始化範本，不覆寫 |
 | POST /local-api/folders | subdir；列出來源範圍內最多 300 個可選子資料夾 |
 | POST /local-api/scan | sourceSubdir、apiDir；保存並回傳分析清單 |
@@ -148,7 +152,7 @@ support/archify-reporter.mjs 接收原生 Playwright 實際步驟，產生現有
 
 ## 首次引導與 Agent 知識庫
 
-初始設定為全頁三步守衛：設定讀取中或失敗時不掛載產品頁，configured／initialized／onboardingCompleted 任一未完成均停留引導，直接輸入頁面網址或 Escape 不會略過。第一步兩個並排來源選擇，支援受控 Git 下載與本機（點選「本機資料夾」直接開啟電腦資料夾選擇器並保留路徑欄供取消或貼上路徑，不另設「選擇前端專案」按鈕或開啟中橫幅）；第二步單一資料夾選擇置中，測試專案須獨立於平台及前端，保留既有內容。第三步標題「上傳 PRD、業務流程文件」，只用一個置中正方形上傳按鈕與線條圖示，不提供文字輸入框或稍後略過；上傳與整理期間改以單一置頂橫幅 toast 顯示進度並於完成後消失，不重複顯示整理橫幅。沿用 10 MB 檔案上傳與 AI 整理，至少一份有效知識後才能完成。建立框架或上傳文件不自動視為完成；重新整理後接續第三步，已有完成標記不重跳。側欄設定可重開並返回工作區。完成標記存於獨立專案，不是 localStorage。
+初始設定為全頁四步守衛：設定讀取中或失敗時不掛載產品頁，configured／initialized／onboardingCompleted 任一未完成均停留引導，直接輸入頁面網址或 Escape 不會略過。第一步「AI CLI 設定」支援切換 `Codex`／`Claude Code`／`Gemini CLI` 並偵測本機安裝與登入狀態，提供無障礙模型下拉清單（讀取本機快取或別名）與自訂模型輸入、進階路徑設定、「測試 CLI 連線」與獨立「儲存 CLI 設定」按鈕，並在側欄及功能地圖顯示目前生效 AI（圖片知識辨識限 Codex）。第二步兩個並排來源選擇，支援受控 Git 下載與本機（點選「本機資料夾」直接開啟電腦資料夾選擇器並保留路徑欄供取消或貼上路徑，不另設「選擇前端專案」按鈕或開啟中橫幅）；第三步單一資料夾選擇置中，測試專案須獨立於平台及前端，保留既有內容。第四步標題「上傳 PRD、業務流程文件」，只用一個置中正方形上傳按鈕與線條圖示，不提供文字輸入框或稍後略過；上傳與整理期間改以單一置頂浮動 toast 顯示進度並於完成後消失，不重複顯示整理橫幅。工作區頁面上的操作／讀取錯誤與 AI 辨識／分析進度統一改為頂端置中浮動 Toast 呈現（分析中保留取消按鈕，完成／錯誤／通知均不設關閉按鈕並於 3 秒後自動退場，頁面重載不重現舊失敗狀態）。沿用 10 MB 檔案上傳與 AI 整理，至少一份有效知識後才能完成。建立框架或上傳文件不自動視為完成；重新整理後接續第四步，已有完成標記不重跳。側欄設定可重開並返回工作區。完成標記存於獨立專案，不是 localStorage。
 
 knowledge.mjs 管理 knowledge/documents 的 UTF-8 .md／.txt、index.json、README 自有標記及 AGENTS 閱讀入口。每份 128 KB、每批最多 20 份及 1 MB、最多 500 份；SHA-256 相同內容略過。內容只以文字預覽，不渲染 HTML、不執行命令、不上傳模型。名稱搜尋不等於語意搜尋，尚無 PDF／Word 擷取。封存保留原檔至 archive，不再列入閱讀清單；跨檔更新非 DB 交易，失敗時需核對檔案與索引。
 

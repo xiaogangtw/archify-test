@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { operation, settings } from './client';
 import type { ScriptInventory } from './client';
+import { WorkspaceToast } from './WorkspaceToast';
 import {
   ActionButton,
   Badge,
-  Banner,
   Disclosure,
   PageHeader,
   SegmentedGroup,
@@ -75,12 +75,10 @@ export function ScriptWorkspace({ navigation }: { navigation: ReactNode }) {
         }
       />
 
-      {error && (
-        <Banner tone="danger" className="mb-5">
-          {error}
-          {inventory ? ' 原清單已保留，數量可能不是最新。' : ''}
-        </Banner>
-      )}
+      <WorkspaceToast open={!!error} tone="danger" role="alert" onDismiss={() => setError('')}>
+        {error}
+        {inventory ? ' 原清單已保留，數量可能不是最新。' : ''}
+      </WorkspaceToast>
 
       <section aria-label="腳本數量" aria-busy={busy} className="mb-5">
         {inventory ? (

@@ -49,12 +49,12 @@ custom reporter 將 test.step 實際結果或宣告的流程轉成 schemaVersion
 
 測試流程共用 catalog，但以案例 target 明確分類：api 為 API 流程，web／mobile／mixed 為畫面流程；kind: flow 可搭配 target: api 表達多 API 串接。舊案例缺 target 時，先依 tests/ui、web、mobile 路徑推定畫面，再依 tests/api、flows 或 kind: api 推定 API，其餘列待分類並提示補齊，不自行改寫檔案。新初始化複製的 AGENTS、案例格式及規劃／實作 skills 均要求明確填 target；既有專案不自動覆寫自訂指引，需定向同步分類規則。
 
-測試流程（?view=flows）為唯讀案例表格，顯示 catalog 的前置、步驟／逐步預期、總體預期／清理及待補問題。僅保留重新讀取與測試專案位置，不提供新增、編輯、確認、任務複製、文字篩選或舊流程檔入口。POST /local-api/case-plans 只讀取並驗證 test-cases/catalog.json，不掃描或執行測試、不讀取舊確認檔；案例格式、版本與既有內容保留。規劃與實作全在本機專案使用 plan-test-cases／implement-tests skill 完成，知識不足在本機對話集中詢問。cases:check 預設只檢查資料完整性，status ready 不代表核准或產品通過；--review 及舊確認端點／檔案僅保留相容，不作實作前置條件。測試報告維持 ?view=reports。
+測試流程（?view=flows）為唯讀案例表格，採四欄橫向步驟矩陣（案例／功能｜測試步驟｜使用資料｜預期結果）分組呈現每個案例的逐步操作、步驟使用資料與逐步預期；前置條件、整體預期與清理方式精簡置於該案例末尾橫向摘要列，長篇歷史文字以原生 `<details>` 折疊按需展開。僅保留重新讀取與測試專案位置，不提供新增、編輯、確認、任務複製、文字篩選或舊流程檔入口。功能地圖（?view=catalog）的「測試流程」層採用多列網格排列案例（依案例數 1~4 欄折行，高密度案例群組不再單列無限向右拉長），初始載入於密集節點時以可讀倍率開啟並可點「適合視窗」縮放總覽。POST /local-api/case-plans 只讀取並驗證 test-cases/catalog.json，不掃描或執行測試、不讀取舊確認檔；案例格式、版本與既有內容保留。規劃與實作全在本機專案使用 plan-test-cases／implement-tests skill 完成，知識不足在本機對話集中詢問。cases:check 預設只檢查資料完整性（步驟物件支援選填 `data` 與空白 `expected`，須保留整體 `expected`），status ready 不代表核准或產品通過；--review 及舊確認端點／檔案僅保留相容，不作實作前置條件。測試報告維持 ?view=reports。
 
 ## Android 批次結果查詢中斷處理（2026-10-30）
 
 
-文件版本：1.66
+文件版本：1.67
 
 最後更新：2026-11-11
 
@@ -64,6 +64,7 @@ custom reporter 將 test.step 實際結果或宣告的流程轉成 schemaVersion
 
 | 版本 | 日期 | 說明 |
 | --- | --- | --- |
+| 1.67 | 2026-11-11 | 案例規劃 `steps` 擴充選填 `data`（使用資料）且前置／輸入步驟允許 `expected` 留空，測試流程表格（`?view=flows`）改為四欄橫向步驟矩陣並以原生折疊收斂長文，功能地圖「測試流程」層改採多列網格排版及可讀初始縮放；未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 1.66 | 2026-11-11 | 新專案初始化（`initialize()`）一律寫入空 `test-cases/catalog.json`（不複製 `test-project/` 參考案例），且 `setup()` 於新版專案掃描後自動非覆寫產生單支 `api/*.ts` 與 `tests/api/*.spec.ts` 草稿；未改路由、守衛、導向、API 端點、GraphQL payload 或 DB schema。 |
 | 1.65 | 2026-11-11 | 初始設定第一步點選「本機資料夾」直接開啟置頂前景 Windows 資料夾選擇器（移除「選擇前端專案」按鈕與開啟中提示橫幅，保留路徑欄），重開／連線中斷時中止舊選擇程序；第三步改以單一頂端橫幅 toast 顯示知識整理進度並於完成後消失；未改路由、守衛、導向、API、GraphQL payload 或 DB schema。 |
 | 1.64 | 2026-11-11 | 補齊灰色已廢棄／孤立分流、雙向缺口與測試金字塔報表、`factor` 測試因子與 `decisionTable` 決策矩陣表，並將黃金 3 步減重、L2 上限 6 與禁步驟命名納入驗證及 AI 引導；未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |

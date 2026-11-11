@@ -84,7 +84,7 @@ WorkspaceApp 新增 view=catalog 與 view=knowledge，重新整理保留入口�
 
 ## 圖形入口與操作
 
-view=catalog 現行預設為「功能地圖」，不是舊四欄關聯列表。feature-graph.ts 建立真實節點與依證據區分的連線；FeatureMap 支援原生 SVG 平移、縮放、節點拖曳與鍵盤操作，MapDetails 只在點選後顯示。測試清單獨立切換，CaseEditor 的技術欄位預設收合、ID 自動產生。網站可啟動受控 AI 整理功能與知識；案例規劃與腳本實作則複製任務到本機 AI 工具。幾何互動用 SVG 屬性，不寫 inline style；map-canvas、map-browser、map-detail 及 map-wide token 均在 Tailwind config。驗證：node scripts/verify-feature-graph.mjs 及 DS_REQUIRE_BROWSER=1 node scripts/verify-catalog-ui.mjs。
+view=catalog 現行預設為「功能地圖」，不是舊四欄關聯列表。feature-graph.ts 建立真實節點與依證據區分的連線，「測試流程」層依案例數量採 1~4 欄多列網格排列避免高密度案例單列過寬；FeatureMap 支援原生 SVG 平移、縮放（高密度群組以可讀倍率初始化並保留適合視窗）、節點拖曳與鍵盤操作，MapDetails 只在點選後顯示。測試清單獨立切換，CaseEditor 的技術欄位預設收合、步驟改為三欄（步驟／使用資料／逐步預期）、ID 自動產生。網站可啟動受控 AI 整理功能與知識；案例規劃與腳本實作則複製採簡短步驟矩陣格式的任務到本機 AI 工具。幾何互動用 SVG 屬性，不寫 inline style；map-canvas、map-browser、map-detail 及 map-wide token 均在 Tailwind config。驗證：node scripts/verify-feature-graph.mjs 及 DS_REQUIRE_BROWSER=1 node scripts/verify-catalog-ui.mjs。
 
 ## 前端功能總覽
 
@@ -102,7 +102,7 @@ view=catalog 現行預設為「功能地圖」，不是舊四欄關聯列表。f
 
 初始設定為全頁三步守衛：設定讀取中或失敗時不掛載產品頁，configured／initialized／onboardingCompleted 任一未完成均停留引導，直接輸入頁面網址或 Escape 不會略過。第一步兩個並排來源選擇，支援受控 Git 下載與本機（點選「本機資料夾」直接開啟電腦資料夾選擇器並保留路徑欄供取消或貼上路徑，不另設「選擇前端專案」按鈕或開啟中橫幅）；第二步單一資料夾選擇置中，測試專案須獨立於平台及前端，保留既有內容。第三步標題「上傳 PRD、業務流程文件」，只用一個置中正方形上傳按鈕與線條圖示，不提供文字輸入框或稍後略過；上傳與整理期間改以單一置頂橫幅 toast 顯示進度並於完成後消失，不重複顯示整理橫幅。沿用 10 MB 檔案上傳與 AI 整理，至少一份有效知識後才能完成。建立框架或上傳文件不自動視為完成；重新整理後接續第三步，已有完成標記不重跳。側欄設定可重開並返回工作區。完成標記存於獨立專案，不是 localStorage。
 
-測試流程分類以 catalog.target 為準：api 顯示 API，web／mobile／mixed 顯示畫面；kind: flow 也可為 API 串接。舊案例僅依腳本路徑或 kind: api 推定，無法判定列待分類並提示 AI 補值。AI 規劃分類規則見 test-project/test-cases/README.md；初始化會複製相關指引，既有專案保留人工內容，不自動覆寫。
+測試流程（?view=flows）以四欄橫向步驟矩陣表格（案例／功能｜測試步驟｜使用資料｜預期結果）顯示每個案例的步驟、使用資料與逐步預期，並於案例末尾摘要列顯示精簡前置、整體預期與清理（長文以原生 `<details>` 折疊）。分類以 catalog.target 為準：api 顯示 API，web／mobile／mixed 顯示畫面；kind: flow 也可為 API 串接。舊案例僅依腳本路徑或 kind: api 推定，無法判定列待分類並提示 AI 補值。AI 規劃分類規則與矩陣寫法見 test-project/test-cases/README.md；初始化會複製相關指引，既有專案保留人工內容，不自動覆寫。
 
 ## 測試腳本清單
 

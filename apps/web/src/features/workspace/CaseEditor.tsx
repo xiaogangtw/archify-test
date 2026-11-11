@@ -45,7 +45,20 @@ export function CaseEditor({
     const matrix = (row.decisionTable || []).filter(
       entry => entry.point.trim() || entry.input.trim() || entry.expected.trim(),
     );
-    onSave({ ...row, decisionTable: matrix.length ? matrix : undefined }, name, sources);
+    const cleanedSteps = row.steps?.map(step => ({
+      action: step.action,
+      ...(step.data?.trim() ? { data: step.data } : {}),
+      expected: step.expected,
+    }));
+    onSave(
+      {
+        ...row,
+        ...(cleanedSteps ? { steps: cleanedSteps } : {}),
+        decisionTable: matrix.length ? matrix : undefined,
+      },
+      name,
+      sources,
+    );
   }
 
   return (
@@ -216,7 +229,9 @@ export function CaseEditor({
           <ActionButton
             icon="plus"
             disabled={busy || (row.steps?.length || 0) >= 100}
-            onClick={() => update('steps', [...(row.steps || []), { action: '', expected: '' }])}
+            onClick={() =>
+              update('steps', [...(row.steps || []), { action: '', data: '', expected: '' }])
+            }
           >
             新增步驟
           </ActionButton>
@@ -234,10 +249,11 @@ export function CaseEditor({
                 {`移除步驟 ${index + 1}`}
               </ActionButton>
             </div>
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-3 md:grid-cols-3">
               <TextAreaField
                 label={`步驟 ${index + 1}`}
                 rows={2}
+                placeholder="例如：輸入用戶名"
                 value={step.action}
                 disabled={busy}
                 onChange={event =>
@@ -250,8 +266,24 @@ export function CaseEditor({
                 }
               />
               <TextAreaField
+                label={`使用資料 ${index + 1}`}
+                rows={2}
+                placeholder="例如：test_0001（無則留空）"
+                value={step.data || ''}
+                disabled={busy}
+                onChange={event =>
+                  update(
+                    'steps',
+                    (row.steps || []).map((value, i) =>
+                      i === index ? { ...value, data: event.target.value } : value,
+                    ),
+                  )
+                }
+              />
+              <TextAreaField
                 label={`步驟 ${index + 1} 預期`}
                 rows={2}
+                placeholder="驗證步驟才需填預期"
                 value={step.expected}
                 disabled={busy}
                 onChange={event =>

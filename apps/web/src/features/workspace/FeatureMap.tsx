@@ -111,7 +111,26 @@ export function FeatureMap({
 
   const ready = frame.width > 1;
   useEffect(() => {
-    if (ready) fit();
+    if (!ready) return;
+    setOffsets({});
+    const fitZoom = Math.max(
+      0.00001,
+      Math.min(1, (frame.width - 48) / graph.width, (frame.height - 48) / graph.height),
+    );
+    if (fitZoom < 0.45 && graph.nodes.length > 1) {
+      const readableZoom = Math.min(1, Math.max(fitZoom, 0.55));
+      setCamera({
+        x: graph.width / 2,
+        y: Math.min(graph.height / 2, Math.max(200, frame.height / readableZoom / 2 + 16)),
+        zoom: readableZoom,
+      });
+      return;
+    }
+    setCamera({
+      x: graph.width / 2,
+      y: graph.height / 2,
+      zoom: fitZoom,
+    });
   }, [graph, ready]);
 
   useEffect(() => {

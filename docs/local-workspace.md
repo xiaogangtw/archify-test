@@ -1,6 +1,6 @@
 # 本機來源分析與獨立測試專案
 
-文件版本：2.27
+文件版本：2.28
 
 最後更新：2026-11-11
 
@@ -8,12 +8,13 @@
 
 知識上傳每來源最多 10 MB，每批 20 份、總共 20 MB；支援 MD／HTML／TXT／PNG／JPEG／WebP。原始文件與圖片保存 knowledge/sources，整理文字仍採每份 128 KB、最多 500 份的有效知識；索引 sources 與 README 連結保留原始證據。大型來源逐段分析，超過模型容量的現有知識先檢索候選再比對全文，未選中資料不刪除。圖片只認可見文字及版面，不推測動作或後端，強制標記用途未指定。知識頁可查看原圖及下載原檔；新增 POST /local-api/knowledge-source（id／sha256），同來源 session、路徑、大小與 hash 驗證。完整限制見網站 AI 文件。
 
-測試流程（?view=flows）為唯讀案例表格，顯示 catalog 的前置、步驟／逐步預期、總體預期／清理及待補問題。僅保留重新讀取與測試專案位置，不提供新增、編輯、確認、任務複製、篩選或舊流程檔入口。POST /local-api/case-plans 只讀取並驗證 test-cases/catalog.json，不掃描或執行測試、不讀取舊確認檔；案例格式、版本與既有內容保留。規劃與實作全在本機專案使用 plan-test-cases／implement-tests skill 完成，知識不足在本機對話集中詢問。cases:check 預設只檢查資料完整性，status ready 不代表核准或產品通過；--review 及舊確認端點／檔案僅保留相容，不作實作前置條件。測試報告維持 ?view=reports。
+測試流程（?view=flows）為唯讀案例表格，採四欄橫向步驟矩陣（案例／功能｜測試步驟｜使用資料｜預期結果）分組呈現每個案例的逐步操作、選填步驟資料（`steps[].data`）與逐步預期（前置／輸入步驟允許留空，驗證點或結尾步驟說明結果），前置條件、整體預期與清理方式精簡顯示於案例末尾橫向摘要列，長篇舊內容以原生 `<details>` 折疊按需展開。僅保留重新讀取與測試專案位置，不提供新增、編輯、確認、任務複製、篩選或舊流程檔入口。POST /local-api/case-plans 只讀取並驗證 test-cases/catalog.json，不掃描或執行測試、不讀取舊確認檔；案例格式、版本與既有內容保留。規劃與實作全在本機專案使用 plan-test-cases／implement-tests skill 完成，知識不足在本機對話集中詢問。cases:check 預設只檢查資料完整性，status ready 不代表核准或產品通過；--review 及舊確認端點／檔案僅保留相容，不作實作前置條件。測試報告維持 ?view=reports。
 
 ## 修訂紀錄
 
 | 版本 | 日期 | 說明 |
 | --- | --- | --- |
+| 2.28 | 2026-11-11 | 案例規劃 `steps` 擴充選填 `data` 且允許前置／輸入步驟 `expected` 留空，測試流程表格（`?view=flows`）改採四欄橫向步驟矩陣與原生折疊摘要，並同步更新案例規劃編輯與 AI 引導規範；未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 2.27 | 2026-11-11 | 新專案 `initialize()` 改寫入空 `test-cases/catalog.json`，且 `setup()` 於 `schemaVersion: 2` 專案自動非覆寫產生單支 API 模組與 `.spec.ts` 草稿；未改路由、守衛、導向、API、GraphQL payload 或 DB schema。 |
 | 2.26 | 2026-11-11 | 初始設定第一步點選「本機資料夾」直接開啟電腦資料夾選擇器（移除「選擇前端專案」按鈕與開啟中橫幅），第三步知識整理改採單一頂端橫幅 toast 並於完成後消失；未改路由、守衛、導向、API、GraphQL payload 或 DB schema。 |
 | 2.25 | 2026-11-09 | 新增 view=scripts 測試腳本唯讀清單及 POST /local-api/scripts，顯示實際檔案數與內容判讀、分類及限制。新增入口與本機 API，未改既有守衛、導向、產品 API、GraphQL payload 或 DB schema。 |

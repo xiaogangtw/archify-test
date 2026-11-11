@@ -1,6 +1,6 @@
 # Archify Design System
 
-文件版本：1.24
+文件版本：1.25
 
 最後更新：2026-11-11
 
@@ -87,6 +87,7 @@ Inter／Noto Sans TC，字重 400／500／700。一般內文、側欄、表單�
 
 | 版本 | 日期 | 說明 |
 | --- | --- | --- |
+| 1.25 | 2026-11-11 | 測試流程表格（`?view=flows`）改為四欄橫向步驟矩陣（案例／功能｜測試步驟｜使用資料｜預期結果）並以原生 `<details>` 折疊長篇舊內容，案例規劃編輯器支援三欄步驟與 `data` 欄位，功能地圖「測試流程」層採 1~4 欄多列網格排版與可讀初始縮放；未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 1.24 | 2026-11-11 | 依 Meta Astryx（`@astryxdesign/cli@0.7.13`）設計方法建立共用意圖設計系統 `apps/web/src/components/ui/ds/`，新增 `surface-subtle`／`surface-active` 表面階梯色、`lg:grid-cols-map-browser` 調整為 `14rem`，並全面精簡工作區與閱讀器排版與文案；未改路由、守衛、導向、API、GraphQL payload 或 DB schema。 |
 | 1.23 | 2026-11-11 | 初始設定第一步點選「本機資料夾」直接開啟電腦資料夾選擇器（移除「選擇前端專案」按鈕與開啟中橫幅），第三步知識整理改採單一頂端橫幅 toast 並於完成後消失；未改路由、守衛、導向、API、GraphQL payload 或 DB schema。 |
 | 1.22 | 2026-11-10 | 報告本文採使用者深藍白紙圖文範本，外框維持深色，report token 快照由 Tailwind 設定產生。報告 JSON 增加可選預期／實際／診斷，未改路由、守衛、導向、API 端點、產品 API、GraphQL payload 或 DB schema。 |

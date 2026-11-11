@@ -9,7 +9,7 @@ description: 依測試專案中的案例與知識實作 API、流程或畫面測
 
 缺預期、步驟、樣式基準或關鍵資料時，先依 skills/plan-test-cases/SKILL.md 整理具體問題，一次向使用者詢問並更新 catalog，不猜測或刪問題湊完整。撰寫前後重讀案例與知識，若途中改動先核對新版本；不以舊確認檔代表本次需求。--review 僅供歷史核對，不是實作前置條件。
 
-API 與串接流程實作讀 skills/write-tests/SKILL.md；重用 api/*.ts 的 callApi，不匯入其他 spec，不放全域 token。每個規劃步驟映射為 test.step，保留明確業務斷言與 cleanup；使用 archify-case annotation 關聯固定案例 ID。API 單支放 tests/api，跨 API 流程放 tests/flows；在 catalog.script 明確記錄唯一實作路徑，不改規劃內容以迎合實作。
+API 與串接流程實作讀 skills/write-tests/SKILL.md；重用 api/*.ts 的 callApi，不匯入其他 spec，不放全域 token。每個規劃步驟映射為 `test.step`，對應讀取 `steps[].action`、`steps[].data` 與 `steps[].expected`（步驟 `expected` 留空代表前置輸入，斷言集中在觸發／驗證步驟與整體 `expected`）；使用 `archify-case` annotation 關聯固定案例 ID。API 單支放 tests/api，跨 API 流程放 tests/flows；在 catalog.script 明確記錄唯一實作路徑，不改規劃內容以迎合實作。
 
 網頁可放 tests/web、App 可放 tests/mobile，但先核對專案是否已提供對應 runner 與依賴；缺少 Appium 或畫面樣式基準就回報缺口，不擅改執行設定、不捏造可執行狀態。網頁預覽通過不能當作 LINE App 呈現通過；只驗文字樣式時不要擴大成後端推播驗收。
 

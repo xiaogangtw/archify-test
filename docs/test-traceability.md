@@ -1,6 +1,6 @@
 # 功能、知識與測試關聯
 
-文件版本：1.8
+文件版本：1.9
 
 最後更新：2026-11-11
 
@@ -8,12 +8,13 @@
 
 測試流程共用 catalog，但以案例 target 明確分類：api 為 API 流程，web／mobile／mixed 為畫面流程；kind: flow 可搭配 target: api 表達多 API 串接。舊案例缺 target 時，先依 tests/ui、web、mobile 路徑推定畫面，再依 tests/api、flows 或 kind: api 推定 API，其餘列待分類並提示補齊，不自行改寫檔案。新初始化複製的 AGENTS、案例格式及規劃／實作 skills 均要求明確填 target；既有專案不自動覆寫自訂指引，需定向同步分類規則。
 
-測試流程（?view=flows）為唯讀案例表格，顯示 catalog 的前置、步驟／逐步預期、總體預期／清理及待補問題。僅保留重新讀取與測試專案位置，不提供新增、編輯、確認、任務複製、文字篩選或舊流程檔入口。POST /local-api/case-plans 只讀取並驗證 test-cases/catalog.json，不掃描或執行測試、不讀取舊確認檔；案例格式、版本與既有內容保留。規劃與實作全在本機專案使用 plan-test-cases／implement-tests skill 完成，知識不足在本機對話集中詢問。cases:check 預設只檢查資料完整性，status ready 不代表核准或產品通過；--review 及舊確認端點／檔案僅保留相容，不作實作前置條件。測試報告維持 ?view=reports。
+測試流程（?view=flows）為唯讀案例表格，採四欄橫向步驟矩陣（案例／功能｜測試步驟｜使用資料｜預期結果）呈現每一步驟的操作、選填步驟使用資料及逐步預期；前置條件、整體預期與清理方式精簡附於案例末尾橫向摘要列，長篇舊資料以原生 `<details>` 折疊按需展開。僅保留重新讀取與測試專案位置，不提供新增、編輯、確認、任務複製、文字篩選或舊流程檔入口。POST /local-api/case-plans 只讀取並驗證 test-cases/catalog.json，不掃描或執行測試、不讀取舊確認檔；案例格式、版本與既有內容保留。規劃與實作全在本機專案使用 plan-test-cases／implement-tests skill 完成，知識不足在本機對話集中詢問。cases:check 預設只檢查資料完整性，status ready 不代表核准或產品通過；--review 及舊確認端點／檔案僅保留相容，不作實作前置條件。測試報告維持 ?view=reports。
 
 ## 修訂紀錄
 
 | 版本 | 日期 | 說明 |
 | --- | --- | --- |
+| 1.9 | 2026-11-11 | 案例規劃 `steps` 擴充選填 `data`（使用資料，最多 2000 字）且輸入／前置步驟允許 `expected` 留空，CaseEditor 支援三欄步驟編輯，`?view=flows` 改為四欄步驟矩陣表格與原生折疊摘要，功能地圖「測試流程」層支援多列網格排列；未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 1.8 | 2026-11-11 | 案例擴充選填 `factor`（測試因子）與 `decisionTable`（決策矩陣表）支援高可讀性減重規劃，功能地圖新增「缺口與覆蓋報表」（含測試金字塔佔比、孤立／廢棄清理清單與 PRD／知識提醒）；未改路由、守衛、導向、API、GraphQL payload 或 DB schema。 |
 | 1.7 | 2026-11-09 | 測試流程依 target 明確分類，舊案例保留相容並提示待補，初始化 AI 指引同步。未改路由、守衛、導向、API、GraphQL payload 或 DB schema。 |
 | 1.6 | 2026-11-08 | 報告 API／畫面分類、可選截圖及 TXT，加入本機網頁／Appium fixtures 與受控環境端點；未改產品 API、GraphQL payload、路由、守衛、導向或 DB schema。 |
@@ -32,11 +33,11 @@ knowledge 保存業務依據；test-cases/catalog.json 保存測試意圖；api�
 
 「功能地圖」預設顯示真正的 SVG 節點與連線，左側按功能選取；不再以按鈕或順序列表冒充地圖。點擊功能、測試、步驟、API 或待確認節點才顯示詳情。原生 SVG 支援背景拖曳平移、滾輪／按鈕縮放、節點拖曳及適合視窗；方向鍵平移、＋／－縮放、Home 重設、Alt＋方向鍵移動節點、Enter／Space 選取、Escape 關閉詳情，關閉返回節點焦點。圖位置只存在目前畫面，不改寫業務關係。實線表示明確功能／案例歸屬及 API 引用，虛線表示未核對的腳本宣告順序或問題；不推定 token／cardId 傳遞或未分析出的控制分支。多案例各有獨立分支，長名稱換行並有完整可存取名稱。
 
-「測試清單」與「缺口與覆蓋報表」為獨立切換視圖，不與地圖堆疊。「缺口與覆蓋報表」彙整各功能測試因子缺口、API／UI 金字塔佔比、已廢棄／孤立案例待清理清單與知識關聯追蹤。編輯時顯示名稱、目的、預期、前置、驗證對象、測試因子、規劃步驟、決策矩陣表與清理；新功能另填名稱。ID 自動產生，檔案、測試資料、知識關聯及問題按需展開。圖節點詳情只先顯示相關內容，編號與額外資料收起；API 節點可查看 API／前端來源程式碼。沒有啟動本機編輯器。尚未分類的腳本預設折疊，也提供本機 AI 的功能整理任務文字，不要求逐支人工輸入編號。頁面使用 view=catalog，知識使用 view=knowledge；重新整理可保留入口，未設定仍走既有工作區引導。
+「測試清單」與「缺口與覆蓋報表」為獨立切換視圖，不與地圖堆疊。「缺口與覆蓋報表」彙整各功能測試因子缺口、API／UI 金字塔佔比、已廢棄／孤立案例待清理清單與知識關聯追蹤。編輯時顯示名稱、目的、預期、前置、驗證對象、測試因子、規劃步驟（步驟／使用資料／逐步預期三欄）、決策矩陣表與清理；新功能另填名稱。ID 自動產生，檔案、測試資料、知識關聯及問題按需展開。圖節點詳情只先顯示相關內容，編號與額外資料收起；API 節點可查看 API／前端來源程式碼。沒有啟動本機編輯器。尚未分類的腳本預設折疊，也提供本機 AI 的功能整理任務文字，不要求逐支人工輸入編號。頁面使用 view=catalog，知識使用 view=knowledge；重新整理可保留入口，未設定仍走既有工作區引導。
 
 ## 版控格式與穩定對應
 
-test-cases/catalog.json 的 schemaVersion 為 1，最多 500 個 features、2000 個 cases、整檔 1 MB。features: id、name、sources（path／line，可含平台建立的 hash）；cases: id、featureId、title、kind（api／flow）、purpose、preconditions、data、expected、knowledgeIds、questions（text／answer），script 可指定相對路徑，knowledgeHash 為平台保留的核對基準；選填 steps（action／expected，最多 100 項且每欄 5000 字）、cleanup（20000 字）、target（api／web／mobile／mixed）、factor（positive／negative／boundary／security／error）、decisionTable（最多 100 列 `{ point, input, expected }`，集中表達欄位等價類與邊界校驗）為規劃欄位，舊案例缺少時仍可讀，表格顯示尚未填寫。檔案可由本機 AI 編修，格式與範例見 [測試專案說明](../test-project/test-cases/README.md)。
+test-cases/catalog.json 的 schemaVersion 為 1，最多 500 個 features、2000 個 cases、整檔 1 MB。features: id、name、sources（path／line，可含平台建立的 hash）；cases: id、featureId、title、kind（api／flow）、purpose、preconditions、data、expected、knowledgeIds、questions（text／answer），script 可指定相對路徑，knowledgeHash 為平台保留的核對基準；選填 steps（`action`／`data`／`expected`，最多 100 項；`action`／`expected` 每欄 5000 字，`data` 最多 2000 字；前置／輸入步驟可將 `expected` 留空，但整體案例須有 `expected`）、cleanup（20000 字）、target（api／web／mobile／mixed）、factor（positive／negative／boundary／security／error）、decisionTable（最多 100 列 `{ point, input, expected }`，集中表達欄位等價類與邊界校驗）為規劃欄位，舊案例缺少時仍可讀，表格顯示尚未填寫。檔案可由本機 AI 編修，格式與範例見 [測試專案說明](../test-project/test-cases/README.md)。
 
 優先依腳本 annotation `{ type: 'archify-case', description: 'TC-...' }` 配對，也接受案例的 script 相對路徑連結舊腳本。相同 ID 多份腳本、路徑與 annotation 衝突都列具體問題，不猜測。改名或搬移仍有固定 ID 時能重新找到；沒有 ID 的路徑連結搬移後需人工補上。新目錄不存在時視為空清單，首次儲存建立；既有目錄不覆寫，更新使用 revision 比對與 legacy/test-cases 備份，跨檔案不是資料庫交易。
 

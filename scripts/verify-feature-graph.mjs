@@ -43,4 +43,9 @@ assert.equal(layered.nodes.find(n => n.featureId === 'F-SYS')?.coverage, 'partia
 assert.equal(layered.nodes.find(n => n.featureId === 'F-MOD')?.coverage, 'full');
 assert.equal(layered.nodes.find(n => n.featureId === 'F-EMPTY')?.coverage, 'none');
 for (const a of layered.nodes) for (const b of layered.nodes) if (a.id !== b.id) assert.ok(a.x + nodeSize.width <= b.x || b.x + nodeSize.width <= a.x || a.y + nodeSize.height <= b.y || b.y + nodeSize.height <= a.y, 'layered nodes must not overlap');
+const manyCases = Array.from({ length: 23 }, (_, i) => ({ ...row, id: `TC-M-${i + 1}`, title: `案例 ${i + 1}`, declaredSteps: ['步驟一', '步驟二'], apis: [{ path: 'api/Login.ts', name: 'Login' }], issues: [] }));
+const dense = featureGraph({ catalog: { features: [{ id: 'F-CARD', name: '名片管理' }] }, cases: manyCases }, 'F-CARD');
+assert.equal(dense.nodes.filter(node => node.kind === 'case').length, 23);
+assert.ok(dense.width <= 3000, `multi-case graph should wrap into rows, got width ${dense.width}`);
+for (const a of dense.nodes) for (const b of dense.nodes) if (a.id !== b.id) assert.ok(a.x + nodeSize.width <= b.x || b.x + nodeSize.width <= a.x || a.y + nodeSize.height <= b.y || b.y + nodeSize.height <= a.y, 'dense multi-row nodes must not overlap');
 console.log('PASS feature graph: stable IDs, non-overlapping multi-case & layered layout, coverage classification (full/partial/none), truthful edge kinds, no guessed API sequence, long text and empty data.');

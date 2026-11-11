@@ -10,6 +10,7 @@
 - [初始設定點選本機資料夾直接開啟資料夾選擇器](2026-11-11-setup-local-folder-picker.md)：已完成；前端、本機設定引導、文件治理
 - [清除專案專屬測試資料與重建乾淨本機 Git 歷史](2026-11-11-scrub-product-data-orphan-git.md)：已完成；框架治理、文件治理、測試資料隔離、Git 清理
 - [倉庫瘦身、功能地圖強化與工程化優化（P0–P3）](2026-11-11-repo-optimization-p0-p3.md)：進行中；前端、框架、文件治理
+- [高可讀性案例格式、測試流程矩陣與多案例地圖排版](2026-11-11-readable-case-format-and-flow-views.md)：已完成；前端、本機服務、測試框架、AI 指引、文件治理
 - [新測試專案清空範本目錄並自動產生單支 API 草稿](2026-11-11-new-project-clean-catalog-and-api-drafts.md)：已完成；本機服務、測試專案初始化、文件治理
 - [導入 Astryx Design System 與全面重整工作區 UI/UX](2026-11-11-astryx-design-system-uiux.md)：已完成；前端、設計系統、文件治理
 - [畫面測試撰寫來源與資料依據](2026-11-10-ui-authoring-source-evidence.md)：已完成；測試框架、文件治理
@@ -125,6 +126,10 @@
 
 - [專案知識、案例與腳本關聯](2026-11-08-test-traceability.md)：已完成；前端、本機服務、測試框架
 - [前端功能總覽與本機 AI 整理流程](2026-11-08-frontend-feature-overview.md)：已完成；前端、本機服務、測試框架
+
+### 前端、本機服務、測試框架、AI 指引、文件治理
+
+- [高可讀性案例格式、測試流程矩陣與多案例地圖排版](2026-11-11-readable-case-format-and-flow-views.md)：已完成；前端、本機服務、測試框架、AI 指引、文件治理
 
 ### 前端、本機服務、測試框架、Android、Skills
 

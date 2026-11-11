@@ -160,32 +160,68 @@ export function featureGraph(view: CatalogView, featureId: string, layer = 'test
   }
   const root = 'feature:' + feature.id;
   const cases = view.cases.filter(row => row.featureId === featureId);
-  const width = Math.max(940, cases.length * 960 - 20);
-  nodes.push({ id: root, kind: 'feature', featureId, label: feature.name, x: width / 2 - nodeSize.width / 2, y: 40, coverage: featureCov.coverage, caseCount: featureCov.caseCount, level: feature.frontend?.level });
-  let height = 440;
-  for (const [caseIndex, row] of cases.entries()) {
-    const top = 220, left = caseIndex * 960;
-    const id = 'case:' + row.id;
-    nodes.push({ id, kind: 'case', label: row.title, caseId: row.id, x: left + 360, y: top });
-    edges.push({ id: root + id, from: root, to: id, direction: 'down' });
-    let previous = id;
-    row.declaredSteps.forEach((label, index) => {
-      const stepId = `${id}:step:${index}`;
-      nodes.push({ id: stepId, kind: 'step', label, caseId: row.id, step: index, x: left + 360, y: top + (index + 1) * 144 });
-      edges.push({ id: previous + stepId, from: previous, to: stepId, direction: 'down', dashed: true, label: index === 0 ? '宣告流程' : undefined }); previous = stepId;
-    });
-    row.apis.forEach((api, index) => {
-      const apiId = `${id}:api:${api.path}`;
-      nodes.push({ id: apiId, kind: 'api', label: api.name, caseId: row.id, path: api.path, x: left + 680, y: top + index * 144 });
-      edges.push({ id: id + apiId, from: id, to: apiId, direction: 'right', label: index === 0 ? '引用' : undefined });
-    });
-    if (row.issues.length) {
-      const issueId = id + ':questions';
-      nodes.push({ id: issueId, kind: 'question', label: `${row.issues.length} 項待確認`, caseId: row.id, x: left + 40, y: top });
-      edges.push({ id: id + issueId, from: id, to: issueId, direction: 'left', dashed: true, label: '待確認' });
+  const stepGapY = 116;
+  const sideOffset = 260;
+  const colGap = 64;
+  const rowGap = 68;
+  const targetCols = cases.length <= 2 ? Math.max(1, cases.length) : cases.length <= 6 ? 2 : cases.length <= 12 ? 3 : 4;
+  const blocks = cases.map(row => {
+    const hasIssues = row.issues.length > 0;
+    const hasApis = row.apis.length > 0;
+    const caseRelX = hasIssues ? sideOffset : 0;
+    const blockWidth = caseRelX + nodeSize.width + (hasApis ? sideOffset : 0);
+    const blockHeight = Math.max(row.declaredSteps.length + 1, row.apis.length, 1) * stepGapY - 28;
+    return { row, hasIssues, hasApis, caseRelX, blockWidth, blockHeight };
+  });
+  const gridRows: { items: typeof blocks; width: number; height: number }[] = [];
+  let currentRow: typeof blocks = [], currentWidth = 0, currentHeight = 0;
+  for (const block of blocks) {
+    const nextWidth = currentRow.length ? currentWidth + colGap + block.blockWidth : block.blockWidth;
+    if (currentRow.length && (currentRow.length >= targetCols || nextWidth > 2600)) {
+      gridRows.push({ items: currentRow, width: currentWidth, height: currentHeight });
+      currentRow = [block];
+      currentWidth = block.blockWidth;
+      currentHeight = block.blockHeight;
+    } else {
+      currentRow.push(block);
+      currentWidth = nextWidth;
+      currentHeight = Math.max(currentHeight, block.blockHeight);
     }
-    height = Math.max(height, top + Math.max(row.declaredSteps.length + 1, row.apis.length, 1) * 144 + 40);
   }
+  if (currentRow.length) gridRows.push({ items: currentRow, width: currentWidth, height: currentHeight });
+  const width = Math.max(940, ...gridRows.map(group => group.width + 80));
+  nodes.push({ id: root, kind: 'feature', featureId, label: feature.name, x: width / 2 - nodeSize.width / 2, y: 40, coverage: featureCov.coverage, caseCount: featureCov.caseCount, level: feature.frontend?.level });
+  let rowTop = 210;
+  for (const group of gridRows) {
+    let cursorX = (width - group.width) / 2;
+    for (const block of group.items) {
+      const { row, caseRelX, blockWidth } = block;
+      const caseX = cursorX + caseRelX;
+      const id = 'case:' + row.id;
+      nodes.push({ id, kind: 'case', label: row.title, caseId: row.id, x: caseX, y: rowTop });
+      edges.push({ id: root + id, from: root, to: id, direction: 'down' });
+      let previous = id;
+      row.declaredSteps.forEach((label, index) => {
+        const stepId = `${id}:step:${index}`;
+        nodes.push({ id: stepId, kind: 'step', label, caseId: row.id, step: index, x: caseX, y: rowTop + (index + 1) * stepGapY });
+        edges.push({ id: previous + stepId, from: previous, to: stepId, direction: 'down', dashed: true, label: index === 0 ? '宣告流程' : undefined });
+        previous = stepId;
+      });
+      row.apis.forEach((api, index) => {
+        const apiId = `${id}:api:${api.path}`;
+        nodes.push({ id: apiId, kind: 'api', label: api.name, caseId: row.id, path: api.path, x: caseX + sideOffset, y: rowTop + index * stepGapY });
+        edges.push({ id: id + apiId, from: id, to: apiId, direction: 'right', label: index === 0 ? '引用' : undefined });
+      });
+      if (row.issues.length) {
+        const issueId = id + ':questions';
+        nodes.push({ id: issueId, kind: 'question', label: `${row.issues.length} 項待確認`, caseId: row.id, x: cursorX, y: rowTop });
+        edges.push({ id: id + issueId, from: id, to: issueId, direction: 'left', dashed: true, label: '待確認' });
+      }
+      cursorX += blockWidth + colGap;
+    }
+    rowTop += group.height + rowGap;
+  }
+  const height = Math.max(440, gridRows.length ? rowTop - rowGap + 48 : 440);
   return { nodes, edges, width, height };
 }
 

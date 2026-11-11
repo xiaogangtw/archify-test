@@ -88,16 +88,18 @@ test('案例目錄驗證與保留 factor 測試因子及 decisionTable 決策矩
       id: 'TC-MATRIX', featureId: 'F-REG', title: '【註冊-邊界】欄位驗證矩陣', kind: 'flow', target: 'web',
       factor: 'boundary', decisionTable: [{ point: '用戶名過短', input: 'user', expected: '提示長度不可少於 6 位' }],
       purpose: '集中驗證邊界條件', preconditions: '已位於註冊頁', data: '其餘填寫合法預設值', expected: '顯示對應錯誤訊息',
-      steps: [{ action: '輸入非法用戶名並點擊註冊', expected: '表單阻擋並顯示紅字提示' }], cleanup: '不需清理',
+      steps: [{ action: '輸入合法密碼', data: '123456', expected: '' }, { action: '輸入非法用戶名並點擊註冊', data: 'user', expected: '表單阻擋並顯示紅字提示' }], cleanup: '不需清理',
       knowledgeIds: [], questions: [],
     };
     const catalog = { schemaVersion: 1, features: [{ id: 'F-REG', name: '註冊帳號', sources: [], frontend: { description: '註冊', pageIds: [], apiIds: [], questions: [], evidence: 'code', state: 'active', level: 4 } }], cases: [row] };
     await f.workspace.saveCatalog({ revision: view.revision, catalog });
     view = await f.workspace.catalog();
     assert.equal(view.cases[0].factor, 'boundary');
+    assert.equal(view.cases[0].steps[0].data, '123456');
     assert.equal(view.cases[0].decisionTable[0].point, '用戶名過短');
     assert.equal(view.catalog.features[0].frontend.level, 4);
     await assert.rejects(() => f.workspace.saveCatalog({ revision: view.revision, catalog: { ...catalog, cases: [{ ...row, factor: 'unknown' }] } }));
+    await assert.rejects(() => f.workspace.saveCatalog({ revision: view.revision, catalog: { ...catalog, cases: [{ ...row, steps: [{ action: 'x', data: 123, expected: '' }] }] } }));
     await assert.rejects(() => f.workspace.saveCatalog({ revision: view.revision, catalog: { ...catalog, cases: [{ ...row, decisionTable: [{ point: 'x', input: 'y' }] }] } }));
   } finally { await f.dispose(); }
 });

@@ -21,7 +21,7 @@ test('案例規劃先補資料才可確認，步驟／知識／來源更新使�
     assert.equal(view.cases[0].review.status, 'incomplete');
     await assert.rejects(() => f.workspace.confirmCase(input()), /步驟|問題/);
     assert.equal((await request(handler, '/local-api/case-confirm', input(), { headers: { 'x-archify-session': 'wrong' } })).status, 403);
-    row.questions[0].answer = '測試選單左上角'; row.steps = [{ action: '點左上角會員入口', expected: '收到會員訊息' }];
+    row.questions[0].answer = '測試選單左上角'; row.steps = [{ action: '準備輸入', data: 'member-01', expected: '' }, { action: '點左上角會員入口', data: '點擊', expected: '收到會員訊息' }];
     await f.workspace.saveCatalog({ revision: view.revision, catalog: { ...view.catalog, cases: [row] } });
     view = await f.workspace.catalog(); assert.equal(view.cases[0].review.status, 'pending');
     const cli = () => spawnSync(process.execPath, ['support/case-plan-cli.mjs', row.id, '--review'], { cwd: f.project, encoding: 'utf8' });
@@ -36,7 +36,9 @@ test('案例規劃先補資料才可確認，步驟／知識／來源更新使�
     assert.equal((await request(handler, '/local-api/case-confirm', input())).status, 200);
     view = await f.workspace.catalog(); assert.equal(view.cases[0].review.status, 'confirmed'); assert.equal(cli().status, 0, cli().stderr);
     const oldIntent = intentHash(row), previous = input();
-    row.steps[0].expected = '收到會員文字與按鈕';
+    row.steps[0].data = 'member-02';
+    assert.notEqual(intentHash(row), oldIntent);
+    row.steps[1].expected = '收到會員文字與按鈕';
     assert.notEqual(intentHash(row), oldIntent);
     // Simulate a local AI writing the catalog directly, bypassing the website save.
     await writeFile(join(f.project, 'test-cases/catalog.json'), JSON.stringify({ ...view.catalog, cases: [row] }));

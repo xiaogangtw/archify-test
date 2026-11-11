@@ -12,7 +12,7 @@ export interface FrontendAnalysis { sourceHash: string; generatedAt: string; cov
 export interface TestIntent {
   id: string; featureId: string; title: string; kind: 'api' | 'flow'; purpose: string; preconditions: string; data: string; expected: string;
   script?: string; knowledgeIds: string[]; knowledgeHash?: string; questions: { text: string; answer: string }[];
-  steps?: { action: string; expected: string }[]; cleanup?: string; target?: 'api' | 'web' | 'mobile' | 'mixed';
+  steps?: { action: string; data?: string; expected: string }[]; cleanup?: string; target?: 'api' | 'web' | 'mobile' | 'mixed';
   factor?: TestFactor; decisionTable?: DecisionRow[];
 }
 export interface Catalog { schemaVersion: 1; features: Feature[]; cases: TestIntent[]; frontendAnalysis?: FrontendAnalysis }
@@ -49,7 +49,7 @@ export function aiHandoff(row: CaseView, feature?: Feature) {
 腳本：${row.script || '尚未建立'}
 知識編號：${row.knowledgeIds.join(', ') || '尚未關聯'}
 待處理：${row.issues.map(issue => issue.text).join('；') || '請核對案例與腳本業務語意是否一致'}
-請遵守高可讀性策略（公用前置導航收斂至 preconditions、核心步驟採黃金 3 步聚焦變量、欄位等價類與邊界校驗優先使用 decisionTable）。請保留案例 ID，用 archify-case annotation 關聯腳本，不 import 其他 spec、不改共用框架、不印 token。
+請遵守簡潔矩陣規格策略（公用前置導航收斂至 preconditions 一句話；steps 寫為簡短「步驟 action｜使用資料 data｜預期結果 expected」，純輸入步驟可留空 expected 僅於驗證步驟或總預期說明；欄位等價類與邊界校驗優先用 decisionTable 或步驟內編號列舉；嚴禁把長篇程式路徑／開發日誌塞入步驟或清理）。請保留案例 ID，用 archify-case annotation 關聯腳本，不 import 其他 spec、不改共用框架、不印 token。
 請依證據更新 knowledge、test-cases/catalog.json、api 或 tests；保留人工斷言，不以失敗結果放寬預期。不確定事項保留具體問題。
 先做型別檢查；對產品執行尤其寫入仍須本次任務授權與清理方式。完成後由網站重新讀取，保留歷史報告。`;
 }
@@ -64,7 +64,7 @@ export function featureTestDraftHandoff(feature: Feature, view: CatalogView) {
 功能：${feature.name}（${feature.id}）${feature.frontend?.level ? ` · L${feature.frontend.level}` : ''}
 功能說明：${feature.frontend?.description || '尚未補充'}
 現有案例數：${existing.length}（請至少包含 1 條 factor="positive" 正向冒煙與 1 條 factor="negative"|"boundary"|"security"|"error" 反向或邊界用例）
-設計規範：標題建議採「【模組-類型】條件 + 行為 ➔ 結果」；公用登入／導航收斂進 preconditions；步驟採黃金 3 步聚焦變量；多組欄位驗證請寫進 decisionTable: [{point, input, expected}]。
+設計規範：標題建議採「【模組-類型】條件 + 行為 ➔ 結果」；preconditions 與 cleanup 各維持 1~2 句簡短描述；steps 以 { action, data?, expected } 表達簡潔「測試步驟｜使用資料｜預期結果」（純輸入／前置點擊 expected 可留空 ""）；多組欄位驗證可用 decisionTable: [{point, input, expected}]。勿將長段來源說明或免責長文貼入案例文字欄位。
 關聯路由：${routes.map(route => `${route.url}${route.title ? ` (${route.title})` : ''}`).join(', ') || '尚未對應'}
 關聯頁面：${pages.map(page => page.path).join(', ') || '尚未對應'}
 靜態可達 API：${apis.map(api => `${api.name} (${api.apiFile})`).join(', ') || '尚未對應'}

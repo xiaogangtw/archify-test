@@ -19,7 +19,7 @@ export function planProblems(row) {
   const problems = [];
   for (const [key, label] of [['title', '案例名稱'], ['purpose', '測試目的'], ['preconditions', '前置條件（無則寫無）'], ['expected', '預期結果'], ['cleanup', '清理方式（無則寫不需清理）']]) if (typeof row[key] !== 'string' || !row[key].trim()) problems.push(`請補齊${label}`);
   if (!['api', 'web', 'mobile', 'mixed'].includes(row.target)) problems.push('請指定驗證對象');
-  if (!Array.isArray(row.steps) || !row.steps.length || row.steps.some(step => !step || typeof step.action !== 'string' || !step.action.trim() || typeof step.expected !== 'string' || !step.expected.trim())) problems.push('請補齊每個測試步驟與預期');
+  if (!Array.isArray(row.steps) || !row.steps.length || row.steps.some(step => !step || typeof step.action !== 'string' || !step.action.trim() || typeof step.expected !== 'string' || (step.data !== undefined && typeof step.data !== 'string'))) problems.push('請補齊每個測試步驟與格式');
   if (!Array.isArray(row.questions) || row.questions.some(q => !q.answer?.trim())) problems.push('仍有未回答的問題');
   return problems;
 }

@@ -37,14 +37,15 @@ async function axe() {
 
 try {
  const doc=(await f.workspace.knowledge()).documents[0];
- const row={id:'TC-MENU',featureId:'F-MENU',title:'點會員入口看訊息',kind:'flow',purpose:'檢查文字樣式',preconditions:'已加入測試 LINE OA',data:'測試選單 v1',target:'mobile',steps:[{action:'點 Rich Menu 左上角會員區塊',expected:'收到會員 Flex Message'}],expected:'會員文字正確，按鈕靠右',cleanup:'不需清理',knowledgeIds:[doc.id],questions:[{text:'樣式基準是哪個版本？',answer:''}]};
+ const row={id:'TC-MENU',featureId:'F-MENU',title:'點會員入口看訊息',kind:'flow',purpose:'檢查文字樣式',preconditions:'已加入測試帳號',data:'測試選單 v1',target:'mobile',steps:[{action:'輸入查詢條件',data:'member-01',expected:''},{action:'點 Rich Menu 左上角會員區塊',data:'點擊左上角',expected:'收到會員 Flex Message'}],expected:'會員文字正確，按鈕靠右',cleanup:'不需清理',knowledgeIds:[doc.id],questions:[{text:'樣式基準是哪個版本？',answer:''}]};
  const catalog={schemaVersion:1,features:[{id:'F-MENU',name:'LINE OA 會員',sources:[]}],cases:[row]};
  const path=join(f.project,'test-cases/catalog.json');await writeFile(path,JSON.stringify(catalog));
  await page.goto('http://127.0.0.1:5191/?view=flows');
  await page.getByRole('button',{name:'畫面流程',exact:true}).click();
  await page.getByRole('table',{name:'測試流程案例'}).waitFor();
  await page.getByRole('rowheader',{name:/點會員入口看訊息/}).waitFor();
- await page.getByText('預期：收到會員 Flex Message',{exact:true}).waitFor();
+ await page.getByText('member-01',{exact:true}).waitFor();
+ await page.getByText('收到會員 Flex Message',{exact:true}).waitFor();
  await page.getByText('樣式基準是哪個版本？',{exact:true}).waitFor();
  assert.equal(await page.locator('main button').count(),3);
  assert.equal(await page.locator('main input,main textarea,main select,main [contenteditable=true]').count(),0);

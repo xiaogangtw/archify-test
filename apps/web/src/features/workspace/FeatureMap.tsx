@@ -1,7 +1,13 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, PointerEvent } from 'react';
 import type { CatalogView } from './catalog';
-import { featureGraph, labelLines, nodeSize } from './feature-graph';
+import {
+  featureAncestors,
+  featureGraph,
+  labelLines,
+  nodeSize,
+  singleSystemRootFeature,
+} from './feature-graph';
 import type { CoverageLevel, MapNode } from './feature-graph';
 import { ActionButton, Surface } from '../../components/ui/ds';
 
@@ -29,18 +35,18 @@ const coverageFill: Record<CoverageLevel, string> = {
   retired: 'fill-muted',
 };
 
-function coverageShort(level: CoverageLevel, count: number) {
+function coverageShort(level: CoverageLevel, count: number, isGroup = false) {
   if (level === 'full') return `充分 (${count})`;
   if (level === 'partial') return `部分 (${count})`;
   if (level === 'retired') return `廢棄 (${count})`;
-  return '漏測 (0)';
+  return isGroup ? '尚無案例' : '漏測 (0)';
 }
 
-function coverageSummary(level: CoverageLevel, count: number) {
+function coverageSummary(level: CoverageLevel, count: number, isGroup = false) {
   if (level === 'full') return `充分覆蓋（${count} 個測試案例）`;
   if (level === 'partial') return `部分覆蓋（${count} 個測試案例，建議補齊正反／邊界測試）`;
   if (level === 'retired') return `已下線／廢棄（關聯 ${count} 筆待清理案例）`;
-  return '尚未覆蓋（0 個測試案例）';
+  return isGroup ? '尚未建立測試案例（分類群組）' : '尚未覆蓋（0 個測試案例）';
 }
 
 export function FeatureMap({
@@ -48,6 +54,7 @@ export function FeatureMap({
   featureId,
   selected,
   onSelect,
+  onNavigateFeature,
   disabled = false,
   layer = 'tests',
 }: {
@@ -56,6 +63,7 @@ export function FeatureMap({
   featureId: string;
   selected?: string;
   onSelect: (node?: MapNode) => void;
+  onNavigateFeature?: (featureId: string) => void;
   disabled?: boolean;
 }) {
   const graph = useMemo(() => featureGraph(view, featureId, layer), [view, featureId, layer]);
@@ -226,6 +234,23 @@ export function FeatureMap({
   }
 
   const focusNode = hovered || selected;
+  const focusedNode = focusNode ? positions.get(focusNode) : undefined;
+  const systemRoot = useMemo(
+    () => singleSystemRootFeature(view.catalog, view.cases),
+    [view.catalog, view.cases],
+  );
+  const currentFeature =
+    featureId !== 'overview'
+      ? view.catalog.features.find(row => row.id === featureId)
+      : undefined;
+  const ancestors = useMemo(
+    () =>
+      featureId !== 'overview'
+        ? featureAncestors(view.catalog.features, featureId, systemRoot?.id)
+        : [],
+    [view.catalog.features, featureId, systemRoot?.id],
+  );
+  const parentTarget = ancestors.length ? ancestors[ancestors.length - 1].id : 'overview';
   const box = [
     camera.x - frame.width / camera.zoom / 2,
     camera.y - frame.height / camera.zoom / 2,
@@ -240,9 +265,57 @@ export function FeatureMap({
       aria-label="功能關聯地圖"
     >
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-surface px-4 py-2.5">
-        <p className="font-medium text-ink">
-          {view.catalog.features.find(row => row.id === featureId)?.name || '全部功能'}
-        </p>
+        {featureId === 'overview' ? (
+          <p className="font-medium text-ink">{systemRoot?.name || '全部功能'}</p>
+        ) : (
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            {onNavigateFeature && (
+              <ActionButton
+                variant="secondary"
+                icon="arrow-left"
+                disabled={disabled}
+                onClick={() => onNavigateFeature(parentTarget)}
+              >
+                {ancestors.length ? '返回上一層' : '返回總覽'}
+              </ActionButton>
+            )}
+            <nav aria-label="功能階層導覽" className="flex min-w-0 flex-wrap items-center gap-1">
+              {onNavigateFeature ? (
+                <>
+                  <ActionButton
+                    variant="ghost"
+                    disabled={disabled}
+                    onClick={() => onNavigateFeature('overview')}
+                  >
+                    {systemRoot?.name || '全部功能'}
+                  </ActionButton>
+                  {ancestors.map(ancestor => (
+                    <span key={ancestor.id} className="inline-flex items-center gap-1">
+                      <span aria-hidden="true" className="text-muted">
+                        /
+                      </span>
+                      <ActionButton
+                        variant="ghost"
+                        disabled={disabled}
+                        onClick={() => onNavigateFeature(ancestor.id)}
+                      >
+                        {ancestor.name}
+                      </ActionButton>
+                    </span>
+                  ))}
+                  <span aria-hidden="true" className="text-muted">
+                    /
+                  </span>
+                  <span className="px-1.5 font-medium text-ink">
+                    {currentFeature?.name || featureId}
+                  </span>
+                </>
+              ) : (
+                <p className="font-medium text-ink">{currentFeature?.name || '全部功能'}</p>
+              )}
+            </nav>
+          </div>
+        )}
         <div className="flex flex-wrap items-center gap-1.5" aria-label="地圖控制">
           {hasRelations && (
             <ActionButton
@@ -362,11 +435,14 @@ export function FeatureMap({
         {graph.nodes.map(original => {
           const node = positions.get(original.id)!;
           const active = selected === node.id;
+          const neutralGroup = !!node.isGroup && node.coverage === 'none';
           const strokeClass = active
             ? 'stroke-ink stroke-2'
-            : node.coverage
-              ? `${coverageStroke[node.coverage]} stroke-2`
-              : 'stroke-line-strong stroke-1';
+            : neutralGroup
+              ? 'stroke-line-strong stroke-1'
+              : node.coverage
+                ? `${coverageStroke[node.coverage]} stroke-2`
+                : 'stroke-line-strong stroke-1';
           return (
             <g
               key={node.id}
@@ -416,7 +492,7 @@ export function FeatureMap({
             >
               <title>
                 {node.coverage
-                  ? `${node.label}（${coverageSummary(node.coverage, node.caseCount ?? 0)}）`
+                  ? `${node.label}（${coverageSummary(node.coverage, node.caseCount ?? 0, node.isGroup)}）`
                   : node.label}
               </title>
               <rect
@@ -431,7 +507,7 @@ export function FeatureMap({
                 y="23"
                 className={`font-sans text-body ${node.kind === 'question' ? 'fill-warning' : 'fill-muted'}`}
               >
-                {kinds[node.kind]}
+                {node.isGroup ? '分類' : kinds[node.kind]}
                 {node.level ? ` · L${node.level}` : ''}
               </text>
               {node.coverage && (
@@ -440,15 +516,18 @@ export function FeatureMap({
                     cx={nodeSize.width - 18}
                     cy="18"
                     r="3.5"
-                    className={coverageFill[node.coverage]}
+                    strokeWidth={neutralGroup ? '1.5' : undefined}
+                    className={
+                      neutralGroup ? 'fill-none stroke-line-strong' : coverageFill[node.coverage]
+                    }
                   />
                   <text
                     x={nodeSize.width - 28}
                     y="23"
                     textAnchor="end"
-                    className={`font-sans text-body font-medium ${coverageFill[node.coverage]}`}
+                    className={`font-sans text-body font-medium ${neutralGroup ? 'fill-muted' : coverageFill[node.coverage]}`}
                   >
-                    {coverageShort(node.coverage, node.caseCount ?? 0)}
+                    {coverageShort(node.coverage, node.caseCount ?? 0, node.isGroup)}
                   </text>
                 </>
               )}
@@ -463,6 +542,23 @@ export function FeatureMap({
           );
         })}
       </svg>
+
+      <div className="flex min-h-9 flex-wrap items-center justify-between gap-2 border-t border-line bg-surface-subtle px-4 py-1.5 text-body">
+        {focusedNode ? (
+          <>
+            <span className="min-w-0 break-words font-medium text-ink">
+              {`${focusedNode.isGroup ? '分類' : kinds[focusedNode.kind]}${focusedNode.level ? ` L${focusedNode.level}` : ''}：${focusedNode.label}`}
+            </span>
+            {focusedNode.coverage && (
+              <span className="shrink-0 text-muted">
+                {coverageSummary(focusedNode.coverage, focusedNode.caseCount ?? 0, focusedNode.isGroup)}
+              </span>
+            )}
+          </>
+        ) : (
+          <span className="text-muted">移動滑鼠或鍵盤聚焦節點，可於此檢視完整名稱與覆蓋摘要。</span>
+        )}
+      </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-surface px-4 py-2.5 text-muted">
         <p id="map-help">

@@ -7,7 +7,8 @@ import { fixture } from '../services/local-workspace/test-support.mjs';
 import { createHandler } from '../services/local-workspace/plugin.mjs';
 import { scriptEvidence, caseEvidence } from '../test-project/support/script-evidence.mjs';
 const require = createRequire(import.meta.url);
-const { chromium } = require('../.local/gate-deps/node_modules/playwright');
+let chromium;
+try { ({ chromium } = require('playwright')); } catch { ({ chromium } = require('../.local/gate-deps/node_modules/playwright')); }
 assert.equal(process.env.DS_REQUIRE_BROWSER, '1');
 const f = await fixture();
 await f.workspace.initialize();await f.enableUi();
@@ -56,12 +57,16 @@ try {
  await page.getByRole('button',{name:'功能：名片管理',exact:true}).waitFor();
  assert.equal(await page.getByRole('button',{name:'專案：前端功能總覽',exact:true}).count(),1);
  await page.getByRole('button',{name:'功能：名片管理',exact:true}).click();
+ await page.getByRole('button',{name:'返回總覽',exact:true}).waitFor();
  await page.getByRole('button',{name:'前端頁面：名片',exact:true}).click();
  await page.getByRole('region',{name:'程式碼預覽'}).locator('pre').filter({hasText:'CardPage'}).waitFor();
  await page.getByRole('button',{name:'關閉詳情',exact:true}).click();
  await page.getByRole('main').getByRole('button',{name:'測試流程',exact:true}).click();
  assert.equal(await page.getByRole('button',{name:/^前端頁面：/}).count(),0);
  await page.getByRole('button',{name:'產品頁面與 API',exact:true}).click();
+ await page.getByRole('button',{name:'返回總覽',exact:true}).click();
+ await page.getByRole('button',{name:'專案：前端功能總覽',exact:true}).waitFor();
+ await page.getByRole('button',{name:'功能：名片管理',exact:true}).click();
  await axe();
  for(const width of [390,1024,1280,1440,1920]){await page.setViewportSize({width,height:1000});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);}
  await page.setViewportSize({width:1440,height:1000});

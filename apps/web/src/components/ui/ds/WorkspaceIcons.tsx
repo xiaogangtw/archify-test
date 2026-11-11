@@ -25,7 +25,8 @@ export type WorkspaceIconName =
   | 'zoom-in'
   | 'zoom-out'
   | 'fit'
-  | 'git';
+  | 'git'
+  | 'arrow-left';
 
 const paths: Record<WorkspaceIconName, string> = {
   analysis: 'M9 3h6M10 3v5l-5 9a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-9V3',
@@ -55,6 +56,7 @@ const paths: Record<WorkspaceIconName, string> = {
   'zoom-out': 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14Zm-3 7h6m10 10-4.4-4.4',
   fit: 'M4 9V4h5m6 0h5v5m0 6v5h-5M9 20H4v-5',
   git: 'M7 5a2 2 0 1 0 0 4 2 2 0 1 0 0-4Zm10 0a2 2 0 1 0 0 4 2 2 0 1 0 0-4ZM7 15a2 2 0 1 0 0 4 2 2 0 1 0 0-4ZM7 9v6m10-6c0 4-3 5-10 6',
+  'arrow-left': 'M19 12H5m6-6-6 6 6 6',
 };
 
 export function WorkspaceIcon({

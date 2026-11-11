@@ -7,7 +7,8 @@ import { fixture } from '../services/local-workspace/test-support.mjs';
 import { createHandler } from '../services/local-workspace/plugin.mjs';
 import { scriptEvidence, caseEvidence } from '../test-project/support/script-evidence.mjs';
 const require = createRequire(import.meta.url);
-const { chromium } = require('../.local/gate-deps/node_modules/playwright');
+let chromium;
+try { ({ chromium } = require('playwright')); } catch { ({ chromium } = require('../.local/gate-deps/node_modules/playwright')); }
 assert.equal(process.env.DS_REQUIRE_BROWSER, '1');
 const f = await fixture();
 await f.workspace.initialize();await f.enableUi(); const analysis = await f.workspace.scan();
@@ -118,6 +119,11 @@ try {
   await page.getByRole('button', { name: '測試清單', exact: true }).click(); await page.getByRole('table', { name: '測試清單', exact: true }).waitFor();
   assert.equal(await page.getByRole('region', { name: '功能關聯地圖' }).count(), 0, 'table is separate from map');
   await page.getByRole('button', { name: '讀取名片並核對指定資料', exact: true }).click();
+  await page.getByRole('region', { name: '節點詳情' }).waitFor();
+  await page.getByRole('button', { name: '地圖', exact: true }).click();
+  await page.getByRole('region', { name: '功能關聯地圖' }).waitFor();
+  await page.getByRole('region', { name: '節點詳情' }).waitFor();
+  await page.getByRole('button', { name: '測試清單', exact: true }).click(); await page.getByRole('table', { name: '測試清單', exact: true }).waitFor();
   await axe();
   if (process.env.ARCHIFY_GATE_REVIEW === '1') console.log('REVIEW_DETAIL_IMAGE:' + (await page.screenshot({ type: 'jpeg', quality: 65 })).toString('base64'));
   for (const button of await page.getByRole('button').all()) { if (!await button.isVisible() || await button.evaluate(el => el.tagName.toLowerCase() === 'g')) continue; const box = await button.boundingBox(); assert.ok(box && box.height >= 32 && box.width >= 24, await button.innerText()); }

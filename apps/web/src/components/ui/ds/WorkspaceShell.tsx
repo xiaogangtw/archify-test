@@ -16,7 +16,7 @@ export function WorkspaceShell({
     <div className="app-shell !flex flex-col bg-canvas font-sans text-body text-ink lg:!grid lg:!grid-cols-api-shell">
       <aside
         aria-label={asideLabel}
-        className="flex shrink-0 flex-col gap-5 border-b border-line bg-sidebar p-4 lg:border-b-0 lg:border-r lg:p-5"
+        className="flex shrink-0 flex-col gap-5 border-b border-line bg-sidebar p-4 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:border-b-0 lg:border-r lg:p-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         <div className="flex items-center gap-2.5 px-1">
           <svg

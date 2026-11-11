@@ -13,6 +13,7 @@
 - [高可讀性案例格式、測試流程矩陣與多案例地圖排版](2026-11-11-readable-case-format-and-flow-views.md)：已完成；前端、本機服務、測試框架、AI 指引、文件治理
 - [新測試專案清空範本目錄並自動產生單支 API 草稿](2026-11-11-new-project-clean-catalog-and-api-drafts.md)：已完成；本機服務、測試專案初始化、文件治理
 - [初始設定前置 AI CLI、全面 Toast 通知與結構化 JSON 修復](2026-11-11-cli-step-toast-and-ai-json.md)：進行中；全端本機服務（Node.js）、前端 UI／UX（React + TypeScript）、AI CLI 整合、文件治理
+- [功能地圖層級、導覽與測試清單 UX 優化](2026-11-11-catalog-ux-refinement.md)：進行中；前端、設計系統、文件治理
 - [導入 Astryx Design System 與全面重整工作區 UI/UX](2026-11-11-astryx-design-system-uiux.md)：已完成；前端、設計系統、文件治理
 - [畫面測試撰寫來源與資料依據](2026-11-10-ui-authoring-source-evidence.md)：已完成；測試框架、文件治理
 - [單檔圖文報告與完整歷史](2026-11-10-single-file-report-history.md)：已完成；前端、文件
@@ -175,6 +176,7 @@
 
 ### 前端、設計系統、文件治理
 
+- [功能地圖層級、導覽與測試清單 UX 優化](2026-11-11-catalog-ux-refinement.md)：進行中；前端、設計系統、文件治理
 - [導入 Astryx Design System 與全面重整工作區 UI/UX](2026-11-11-astryx-design-system-uiux.md)：已完成；前端、設計系統、文件治理
 
 ### 文件治理

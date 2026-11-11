@@ -1,7 +1,13 @@
 import { useEffect, useRef } from 'react';
 import type { CatalogView } from './catalog';
-import type { MapNode } from './feature-graph';
-import { featureCoverage } from './feature-graph';
+import type { CoverageLevel, MapNode } from './feature-graph';
+import {
+  directChildFeatures,
+  featureAncestors,
+  featureCoverage,
+  featureTreeCoverage,
+  singleSystemRootFeature,
+} from './feature-graph';
 import {
   aiHandoff,
   factorLabels,
@@ -15,8 +21,17 @@ import {
   Badge,
   Disclosure,
   MetadataGrid,
+  StatusDot,
   Surface,
 } from '../../components/ui/ds';
+import type { Tone } from '../../components/ui/ds';
+
+const covDotTone: Record<CoverageLevel, Tone> = {
+  full: 'success',
+  partial: 'warning',
+  none: 'danger',
+  retired: 'neutral',
+};
 
 export function MapDetails({
   node,
@@ -28,6 +43,7 @@ export function MapDetails({
   onEdit,
   onCode,
   onCase,
+  onFeature,
   onCopy,
   onAddCase,
 }: {
@@ -40,31 +56,76 @@ export function MapDetails({
   onEdit: (id: string) => void;
   onCode: (scope: string, path: string) => void;
   onCase: (id: string) => void;
+  onFeature?: (id: string) => void;
   onCopy: (text: string) => void;
   onAddCase?: () => void;
 }) {
   const heading = useRef<HTMLHeadingElement>(null);
-  const row = view.cases.find(row => row.id === node.caseId);
-  const feature = view.catalog.features.find(feature => feature.id === featureId);
-  const featureCases = view.cases.filter(item => item.featureId === featureId);
-  const cov = featureCoverage(featureCases, feature);
+  const row = view.cases.find(item => item.id === node.caseId);
+  const systemRoot = singleSystemRootFeature(view.catalog, view.cases);
+  const targetFeatureId =
+    row?.featureId || node.featureId || (featureId !== 'overview' ? featureId : undefined);
+  const feature =
+    node.kind === 'project'
+      ? systemRoot
+      : targetFeatureId
+        ? view.catalog.features.find(item => item.id === targetFeatureId)
+        : undefined;
+  const featureCases = targetFeatureId
+    ? view.cases.filter(item => item.featureId === targetFeatureId)
+    : [];
+  const childFeatures = targetFeatureId
+    ? directChildFeatures(view.catalog.features, targetFeatureId)
+    : [];
+  const cov = targetFeatureId
+    ? featureTreeCoverage(targetFeatureId, view)
+    : featureCoverage(featureCases, feature);
+  const ancestors = targetFeatureId
+    ? featureAncestors(view.catalog.features, targetFeatureId, systemRoot?.id)
+    : [];
 
   useEffect(() => {
     heading.current?.focus({ preventScroll: innerWidth >= 1440 });
   }, [node.id]);
 
   const current = row?.freshness === 'current';
+  const hasSourceIssue = !!row?.issues.some(issue => issue.type === 'source');
 
   return (
     <Surface className="self-start" aria-label="節點詳情">
       <header className="mb-4 flex items-start justify-between gap-3 border-b border-line pb-4">
-        <h2
-          ref={heading}
-          tabIndex={-1}
-          className="min-w-0 break-words rounded-lg text-section font-bold text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-        >
-          {node.label}
-        </h2>
+        <div className="min-w-0 flex-1 space-y-1.5">
+          {onFeature && targetFeatureId && node.kind !== 'project' && (
+            <nav aria-label="所屬階層" className="flex flex-wrap items-center gap-1 text-muted">
+              <ActionButton variant="ghost" onClick={() => onFeature('overview')}>
+                {systemRoot?.name || '全部功能'}
+              </ActionButton>
+              {ancestors.map(ancestor => (
+                <span key={ancestor.id} className="inline-flex items-center gap-1">
+                  <span aria-hidden="true">/</span>
+                  <ActionButton variant="ghost" onClick={() => onFeature(ancestor.id)}>
+                    {ancestor.name}
+                  </ActionButton>
+                </span>
+              ))}
+              {feature && (node.kind !== 'feature' || targetFeatureId !== featureId) && (
+                <span className="inline-flex items-center gap-1">
+                  <span aria-hidden="true">/</span>
+                  <ActionButton variant="ghost" onClick={() => onFeature(feature.id)}>
+                    {feature.name}
+                  </ActionButton>
+                </span>
+              )}
+            </nav>
+          )}
+          <h2
+            ref={heading}
+            tabIndex={-1}
+            className="min-w-0 break-words rounded-lg text-section font-bold text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          >
+            {node.label}
+          </h2>
+        </div>
         <ActionButton variant="ghost" className="shrink-0" onClick={onClose}>
           關閉詳情
         </ActionButton>
@@ -120,14 +181,62 @@ export function MapDetails({
                     ))}
                   </ul>
                 )}
+                {childFeatures.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-ink">{`子功能（${childFeatures.length}）`}</h4>
+                    <ul className="space-y-1.5">
+                      {childFeatures.map(child => {
+                        const childCov = featureTreeCoverage(child.id, view);
+                        return (
+                          <li key={child.id}>
+                            <ActionButton
+                              variant="secondary"
+                              align="between"
+                              className="w-full"
+                              disabled={busy || !onFeature}
+                              onClick={() => onFeature?.(child.id)}
+                            >
+                              <span className="flex min-w-0 items-center gap-2">
+                                {childCov.coverage === 'full' ||
+                                childCov.coverage === 'partial' ||
+                                childCov.coverage === 'retired' ? (
+                                  <StatusDot tone={covDotTone[childCov.coverage]} />
+                                ) : (
+                                  <span
+                                    aria-hidden="true"
+                                    className="inline-block h-2 w-2 shrink-0 rounded-full border border-line-strong"
+                                  />
+                                )}
+                                <span className="min-w-0 break-words">{child.name}</span>
+                              </span>
+                              {childCov.caseCount > 0 && (
+                                <span className="shrink-0 tabular-nums text-muted">
+                                  {childCov.caseCount}
+                                </span>
+                              )}
+                            </ActionButton>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
                 {cov.coverage === 'retired' && (
                   <p className="text-muted">功能已自最新來源移除。</p>
                 )}
-                {cov.coverage === 'none' && <p className="text-danger">尚未建立測試案例。</p>}
+                {cov.coverage === 'none' &&
+                  (childFeatures.length > 0 ? (
+                    <p className="text-muted">此分類下子功能尚未建立測試案例。</p>
+                  ) : (
+                    <p className="text-danger">尚未建立測試案例。</p>
+                  ))}
                 {cov.coverage === 'partial' && (
                   <p className="text-warning">{`缺：${cov.missingFactors.join('、')}`}</p>
                 )}
-                {feature && cov.coverage !== 'full' && cov.coverage !== 'retired' && (
+                {feature &&
+                  (!childFeatures.length || featureCases.length > 0) &&
+                  cov.coverage !== 'full' &&
+                  cov.coverage !== 'retired' && (
                   <div className="flex flex-wrap gap-2">
                     {onAddCase && (
                       <ActionButton
@@ -204,12 +313,16 @@ export function MapDetails({
                     <Badge
                       tone={
                         row.latest
-                          ? current && row.latest.status === 'passed'
+                          ? current && row.latest.status === 'passed' && !hasSourceIssue
                             ? 'success'
                             : row.latest.status === 'failed'
                               ? 'danger'
-                              : 'neutral'
-                          : 'neutral'
+                              : hasSourceIssue
+                                ? 'warning'
+                                : 'neutral'
+                          : hasSourceIssue
+                            ? 'warning'
+                            : 'neutral'
                       }
                       dot
                     >
@@ -219,6 +332,11 @@ export function MapDetails({
                     </Badge>
                   </div>
                   {row.latest && <p className="text-muted">{freshnessLabels[row.freshness]}</p>}
+                  {hasSourceIssue && (
+                    <p className="text-warning">
+                      相關前端來源或請求契約已變更，建議核對後重新執行測試。
+                    </p>
+                  )}
                   {row.latest && (
                     <ActionLink
                       icon="open"

@@ -25,6 +25,7 @@ export default {
         'report-heading': ['0.9375rem', { lineHeight: '1.5' }],
       },
       screens: { lg: '1024px', 'api-workbench': '768px', 'map-wide': '1440px' },
+      minWidth: { 'feature-flow': '36rem' },
       gridTemplateColumns: {
         'dashboard-overview': 'minmax(0, 1fr) 18rem',
         'web-workspace': 'minmax(0, 1fr) minmax(0, 2fr)',
@@ -34,6 +35,7 @@ export default {
         'knowledge-reader': '18rem minmax(0, 1fr)',
         'map-browser': '14rem minmax(0, 1fr)',
         'map-detail': 'minmax(0, 1fr) 20rem',
+        'map-flow-detail': 'minmax(0, 1fr) minmax(0, 2fr)',
         'api-catalog': 'minmax(0, 1fr) minmax(0, 1fr) 7rem 3rem',
         'script-workspace': 'minmax(0, 1fr) minmax(0, 3fr)',
         ...Object.fromEntries(Array.from({length:71},(_,i)=>['api-split-'+(i+15),`minmax(0, ${i+15}fr) 0.5rem minmax(0, ${85-i}fr)`])),

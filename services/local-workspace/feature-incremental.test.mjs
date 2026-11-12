@@ -26,7 +26,7 @@ test('網站完整建立基準、無變更不呼叫模型、單頁增量保留�
     }});
     assert.equal((await finish(workspace)).result.mode,'full');
     let value=await workspace.catalog();assert.ok(value.catalog.frontendAnalysis.incremental);
-    assert.equal(value.catalog.frontendAnalysis.incremental.sequenceVersion,1);
+    assert.equal(value.catalog.frontendAnalysis.incremental.sequenceVersion,2);
     value.catalog.features.find(row=>row.id==='F-TWO').name='人工名稱';
     await workspace.saveCatalog({revision:value.revision,catalog:value.catalog});
     const before=await readFile(join(f.project,'test-cases/catalog.json'),'utf8');
@@ -42,11 +42,11 @@ test('網站完整建立基準、無變更不呼叫模型、單頁增量保留�
     await workspace.importKnowledge([{name:'business.md',content:'新版規則'}]);
     assert.equal((await finish(workspace)).result.mode,'full');
     value=await workspace.catalog();
-    delete value.catalog.frontendAnalysis.incremental.sequenceVersion;
+    value.catalog.frontendAnalysis.incremental.sequenceVersion=1;
     await workspace.saveCatalog({revision:value.revision,catalog:value.catalog});
     const upgrade=await finish(workspace);
     assert.equal(upgrade.result.mode,'full','old unchanged analysis is upgraded rather than skipped');
-    assert.equal((await workspace.catalog()).catalog.frontendAnalysis.incremental.sequenceVersion,1);
+    assert.equal((await workspace.catalog()).catalog.frontendAnalysis.incremental.sequenceVersion,2);
   }finally{await f.dispose();}
 });
 

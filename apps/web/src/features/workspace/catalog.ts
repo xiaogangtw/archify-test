@@ -1,5 +1,5 @@
 export type TestFactor = 'positive' | 'negative' | 'boundary' | 'security' | 'error';
-export interface FeatureInteraction { action: string; from: string; to: string; condition: string; source: { path: string; line: number } }
+export interface FeatureInteraction { action: string; from: string; to: string; condition: string; api?: string; transfer?: string; source: { path: string; line: number } }
 export interface DecisionRow { point: string; input: string; expected: string }
 export const factorLabels: Record<TestFactor, string> = {
   positive: '正向冒煙',

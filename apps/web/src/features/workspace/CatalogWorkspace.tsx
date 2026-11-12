@@ -760,7 +760,7 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
                   <div
                     className={cx(
                       'grid min-w-0 gap-4',
-                      selected && 'map-wide:grid-cols-map-detail',
+                      selected && (selected.kind === 'feature' ? 'map-wide:grid-cols-map-flow-detail' : 'map-wide:grid-cols-map-detail'),
                     )}
                   >
                     {mode === 'map' ? (

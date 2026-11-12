@@ -1,6 +1,6 @@
 # 網站 AI 分析與知識更新
 
-文件版本：1.9
+文件版本：1.10
 
 最後更新：2026-11-12
 
@@ -8,6 +8,7 @@
 
 | 版本 | 日期 | 說明 |
 | --- | --- | --- |
+| 1.10 | 2026-11-12 | 功能詳情改為預設可見的前端操作與 API 流程表，新增選填 api／transfer 說明及舊分析升級，來源證據按需展開。未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 1.9 | 2026-11-12 | 序列圖前移至功能詳情，AI 分析依前端證據產生互動與條件，無案例也可閱讀；舊分析下次執行完整升級，來源異動標示舊圖。功能 metadata 新增選填 sequence，未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 1.8 | 2026-11-11 | 功能分析／知識合併／候選檢索與圖片觀察改以結構化 JSON Schema 直接約束輸出（兼做圍欄容錯解析），支援切換 `codex`／`claude`／`gemini` CLI 與模型下拉／自訂選擇（圖片辨識僅支援 Codex），新增 `ai-inspect`、`ai-test`、`ai-settings` 本機契約並改採頂端置中 3 秒自動退場浮動 Toast 顯示分析中／完成／錯誤（不設關閉按鈕）；未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 1.7 | 2026-11-09 | 文件先在本機略過重複來源，唯一高度相似文字以上傳版直接更新並可還原；AI 工作結果增加 skipped／directUpdated。未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
@@ -21,7 +22,7 @@
 
 ## 日常操作
 
-功能分析輸出新增 sequence（每功能最多 30 個 `{action,from,to,condition,source:{path,line}}`），依前端事件、await／回呼及回應／導航條件建立可確認主路徑，缺證據填 []、分支缺口寫 questions，不從 import 或 API 清單猜順序。驗證來源及行號後寫入 feature.frontend.sequence，在功能詳情直接閱讀，零案例亦可；不是測試執行結果。舊 baseline 缺 incremental.sequenceVersion=1 時，下次使用者按 AI 分析會完整升級一次，再恢復增量／無變更略過。未提供序列資料的舊手動提案仍相容；不自動啟動模型。來源異動、遺失或缺版本基準時保留舊圖並提示重新分析，詳見 [前端功能總覽](frontend-feature-overview.md)。
+功能分析的 sequence 每列增加 api／transfer（網站 AI schema 必填，手動舊提案選填），供功能詳情直接顯示前端操作與 API 流程表。api 為方法路徑或 GraphQL 操作名，transfer 僅為欄位用途，不能保存實際秘密值或從參與者推測。依前端事件、await／回呼及回應／導航列出一條有來源的路徑，明示等待／並行／分支條件，缺口寫 questions。舊 baseline 無 incremental.sequenceVersion=2 時，下次使用者發起分析完整升級一次，再恢復增量略過；舊提案仍相容，缺欄位提示尚未分析。來源 hash 不符時保留舊表並提示重分析，詳見 [前端功能總覽](frontend-feature-overview.md)。
 
 功能地圖頁按「AI 分析功能」即可由網站準備來源證據、呼叫本機 Codex、驗證結果並更新地圖。保留原本功能 ID、名稱與案例；無法判斷的規則保留問題，未分配頁面與 API 明示。原手動準備／複製任務／載入結果收在「手動分析工具」，不再是主要操作流程。無額外模型 key 輸入框。
 

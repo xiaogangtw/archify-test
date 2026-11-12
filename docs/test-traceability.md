@@ -1,6 +1,6 @@
 # 功能、知識與測試關聯
 
-文件版本：1.11
+文件版本：1.12
 
 最後更新：2026-11-12
 
@@ -14,6 +14,7 @@
 
 | 版本 | 日期 | 說明 |
 | --- | --- | --- |
+| 1.12 | 2026-11-12 | 功能詳情改為預設可見的前端操作與 API 流程表，新增選填 api／transfer 說明及舊分析升級，來源證據按需展開。未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 1.11 | 2026-11-12 | 序列圖前移至功能詳情，AI 分析依前端證據產生互動與條件，無案例也可閱讀；舊分析下次執行完整升級，來源異動標示舊圖。功能 metadata 新增選填 sequence，未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 1.10 | 2026-11-12 | 案例詳情新增按需序列圖與版本相符的逐步結果，steps 選填 interaction，catalog 回應 latest 新增 name／status 摘要；未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 1.9 | 2026-11-11 | 案例規劃 `steps` 擴充選填 `data`（使用資料，最多 2000 字）且輸入／前置步驟允許 `expected` 留空，CaseEditor 支援三欄步驟編輯，`?view=flows` 改為四欄步驟矩陣表格與原生折疊摘要，功能地圖「測試流程」層支援多列網格排列；未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
@@ -31,7 +32,7 @@
 
 ### 案例流程與序列圖
 
-功能序列圖是測試前入口：點功能就在說明下方展開有前端來源的互動，無案例也可閱讀，無測試狀態。資料為 feature.frontend.sequence（最多 30 項 action／from／to／condition／source），由功能 AI 分析及手動提案驗證套用，並依 frontendAnalysis.files 比對來源 hash；舊圖會明示來源變更，無資料則提示重新分析或證據不足。案例 steps.interaction 仍表達特定測試路徑，不自動從功能圖複製或配對測試結果。詳見 [前端功能總覽](frontend-feature-overview.md)。
+功能的「前端操作與 API 流程表」是測試前入口：點功能即可在說明下方讀表，無案例也可閱讀，不顯示執行結果。資料仍是 feature.frontend.sequence（最多30項），新增選填 api（300字）／transfer（500字），既有 action／condition／source 表達操作、等待及證據。api 空字串表示確認未呼叫，transfer 空字串表示確認無需傳遞；未提供欄位顯示尚未分析，未知可填待確認，不得用 from／to 猜 API。來源證據按需展開，來源過期提示重分析。案例 steps.interaction 及結果仍獨立，不從功能表自動配對。詳見 [前端功能總覽](frontend-feature-overview.md)。
 
 互動來源須同時納入所屬 feature.sources，沿用既有逐檔 hash 版本檢查；未納入、無基準、遺失或已變動均列來源問題並停用逐步結果標示。這不等於部署版本證明。
 

@@ -5,6 +5,8 @@ description: 根據前端來源證據包整理全部頁面與業務功能、保�
 
 # 整理前端功能
 
+網站以「前端操作與 API 流程表」為主要閱讀方式。sequence 每列可加 api（最多 300 字，方法＋路徑或 GraphQL 操作名）及 transfer（最多 500 字，僅描述輸出欄位傳到下一步的用途）；確定沒有呼叫／無需傳遞填空字串，未知填「待確認」。依程式事件、await、回應及分支列出實際順序，action 清楚寫使用者操作或前端自動處理，condition 標明等待、並行與分支。不能從 from／to 猜 API 或 token／ID 傳遞，不填實際秘密值；舊提案缺欄位仍可讀並提示重新分析。
+
 每個功能可附 sequence（最多 30 項 `{action, from, to, condition, source:{path,line}}`），直接依前端事件、await／回呼、回應處理及導航條件描述一條可確認主路徑。action 最多 300 字，from／to 各 80 字，condition 最多 500 字、無條件填空字串；引用需為 evidence.files 的有效檔案及行號。沒有證據填 []，其餘分支與缺口寫 questions，不把互斥或並行互動畫成無條件先後，不推測後端內部服務或 token 值。序列圖屬功能，無案例亦可閱讀；不可從 import 可達 API 排序捏造互動。
 
 先讀 AGENTS.md、test-cases/catalog.json、knowledge/README.md，以及 analysis/feature-evidence.json。網站「準備分析資料」會更新唯讀路由、頁面、匯入可達 API、來源 hash、previousFeatures 與 changes；不是 AI 已完成分析。若使用自訂分析目錄，以 archify.config.json 的 analysisDir 為準。

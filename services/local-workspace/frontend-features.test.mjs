@@ -22,7 +22,8 @@ test('路由、頁面與 alias 匯入唯讀取證，提案需完整交代覆蓋�
   assert.ok(!JSON.stringify(evidence).includes('DO_NOT_EXECUTE'));
   const feature={id:'F-CARD',name:'名片',description:'名片管理',evidence:'code',sources:[{path:'src/routes.tsx',line:1}],pageIds:evidence.pages.map(p=>p.id),apiIds:evidence.apis.map(a=>a.id),questions:['權限需確認']};
   const proposal={schemaVersion:1,sourceHash:evidence.sourceHash,catalogRevision:evidence.catalogRevision,generatedAt:new Date().toISOString(),features:[feature],relations:[],unassignedPageIds:[],unassignedApiIds:[],notes:[]};
-  feature.sequence=[{action:'請求名片',from:'前端',to:'名片 API',condition:'進入頁面時',source:{path:'src/pages/CardPage.tsx',line:1}}];
+  feature.sequence=[{action:'請求名片',from:'前端',to:'名片 API',condition:'進入頁面時',api:'GetCard',transfer:'回傳 card.id 供後續更新使用',source:{path:'src/pages/CardPage.tsx',line:1}}];
+  for (const extra of [{api:123},{transfer:'x'.repeat(501)}]) assert.throws(()=>validateFeatureMap({...proposal,features:[{...feature,sequence:[{...feature.sequence[0],...extra}]}]},evidence));
   for(const source of [{path:'.env',line:1},{path:'src/pages/CardPage.tsx',line:9000}])assert.throws(()=>validateFeatureMap({...proposal,features:[{...feature,sequence:[{...feature.sequence[0],source}]}]},evidence));
   assert.throws(()=>validateFeatureMap({...proposal,features:[{...feature,sequence:Array(31).fill(feature.sequence[0])}]},evidence));
   assert.equal(validateFeatureMap(proposal,evidence).features,1);

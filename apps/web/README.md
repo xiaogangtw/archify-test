@@ -1,6 +1,6 @@
 # Archify 前端
 
-文件版本：2.34
+文件版本：2.35
 
 最後更新：2026-11-12
 
@@ -14,6 +14,7 @@
 
 | 版本 | 日期 | 說明 |
 | --- | --- | --- |
+| 2.35 | 2026-11-12 | 葉功能改主區完整閱讀器與 API 流程／測試案例分頁，來源和長步驟按需展開；分類地圖原位置保留，取消寬度相關的右側／下方詳情。未改路由、守衛、導向、API、GraphQL payload 或 DB schema。 |
 | 2.34 | 2026-11-12 | 功能詳情改為預設可見的前端操作與 API 流程表，新增選填 api／transfer 說明及舊分析升級，來源證據按需展開。未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 2.33 | 2026-11-12 | 序列圖前移至功能詳情，AI 分析依前端證據產生互動與條件，無案例也可閱讀；舊分析下次執行完整升級，來源異動標示舊圖。功能 metadata 新增選填 sequence，未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 2.32 | 2026-11-12 | 案例詳情新增流程步驟、收合序列圖、來源預覽與保守逐步結果配對；本機 catalog latest 新增 steps 摘要，未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
@@ -84,7 +85,7 @@ SourceWorkspace 的「補齊缺少腳本」分批處理全部分析項目，既�
 
 ## 功能與測試案例入口
 
-功能詳情在說明後、對應測試前，以 FeatureSequence 呈現預設可見的「前端操作與 API 流程表」，不需案例、不再顯示功能序列圖。四欄為操作（含編號）、API、資料傳遞及等待／執行條件，來源預覽收在下方「流程來源證據」。沿用 frontend.sequence 並新增選填 api／transfer，舊資料缺欄位明示尚未分析；下次 AI 分析以 sequenceVersion=2 完整補齊一次，再恢復增量快取。缺來源不猜測 API、token 或 ID 傳遞；功能來源 hash 檢查及案例結果配對維持原規則。map-flow-detail 與 feature-flow token 為桌面表格提供寬度；瀏覽器 gate 沿用 verify-frontend-overview-ui.mjs。
+CatalogWorkspace 新增 readingFeatureId 閱讀狀態，保留分類 featureId 及地圖掛載，左側／圖上點葉功能直接進 FeatureReader。API 流程與測試案例使用可及性分頁；來源按需展開，點步驟看完整資料，主區不再依斷點分成右欄／下方詳情。案例、程式碼詳情同樣在主區閱讀，返回恢復原分類鏡頭及焦點；FeatureMap 忽略隱藏時的零尺寸觀察以保留鏡頭。編修與新增案例沿用原入口，新增綁定目前閱讀功能，儲存返回案例分頁。沿用 view=catalog、既有型別與後端資料；gate 更新於 verify-frontend-overview-ui.mjs 和 verify-catalog-ui.mjs。
 
 案例詳情由 `CaseSequence` 先呈現步驟與預期，再按需展開有 interaction 來源的序列圖；未提供互動不猜測。序列圖編號對應步驟，來源連到既有程式碼預覽。最新報告只在版本相符、無來源問題、唯一腳本與唯一同名步驟時顯示狀態；未對應不代表未執行，不將整案通過套到每一步。沿用 Astryx 的漸進揭露指引與專案 ds／Tailwind，無新增套件或樣式表。契約與限制見 [測試關聯](../../docs/test-traceability.md)，瀏覽器 gate 為 `DS_REQUIRE_BROWSER=1 node scripts/verify-case-sequence-ui.mjs`。
 

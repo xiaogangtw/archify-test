@@ -1,10 +1,12 @@
 import type { Feature } from './catalog';
+import { Fragment, useState } from 'react';
 import { ActionButton, Disclosure } from '../../components/ui/ds';
 
 export function FeatureSequence({ feature, busy, onCode }: {
   feature: Feature; busy: boolean; onCode: (scope: string, path: string) => void;
 }) {
   const sequence = feature.frontend?.sequence;
+  const [expanded, setExpanded] = useState<number>();
   if (!sequence?.length) return (
     <section aria-label="前端操作與 API 流程" className="space-y-2">
       <h3 className="font-medium text-ink">前端操作與 API 流程</h3>
@@ -15,19 +17,19 @@ export function FeatureSequence({ feature, busy, onCode }: {
     <section aria-label="前端操作與 API 流程" className="min-w-0 space-y-3">
       <h3 className="font-medium text-ink">前端操作與 API 流程</h3>
       {feature.frontend?.sequenceStale && <p className="text-warning">來源已變更或缺少版本基準；以下為上次分析，請重新分析。</p>}
-      <p className="text-muted">依前端程式整理，尚非實際執行結果。</p>
+      <p className="text-muted">依前端程式整理，尚非實際執行結果。點選步驟查看完整資料與來源。</p>
       {sequence.some(step => step.api === undefined || step.transfer === undefined) && <p className="text-muted">舊分析尚缺 API 或資料傳遞說明，可使用頁首「AI 分析功能」補齊。</p>}
       <div className="max-w-full overflow-x-auto rounded-lg border border-line" role="region" aria-label="API 流程表，可水平捲動" tabIndex={0}>
         <table className="w-full min-w-feature-flow table-fixed border-collapse text-left" aria-label="前端操作與 API 流程表">
           <thead className="bg-canvas text-muted"><tr>{['前端操作', '呼叫的 API', '資料傳遞', '等待／執行條件'].map(label => <th key={label} scope="col" className="px-3 py-3 font-medium">{label}</th>)}</tr></thead>
           <tbody className="divide-y divide-line">
             {sequence.map((step,index) => (
-              <tr key={index} className="align-top">
-                <th scope="row" className="whitespace-pre-wrap break-words px-3 py-3 font-medium text-ink">{`${index + 1}. ${step.action}`}</th>
+              <Fragment key={index}><tr className="align-top">
+                <th scope="row" className="whitespace-pre-wrap break-words px-3 py-3 font-medium text-ink"><ActionButton variant="ghost" align="start" className="max-w-full whitespace-normal break-words text-left" aria-expanded={expanded === index} onClick={() => setExpanded(expanded === index ? undefined : index)}>{`${index + 1}. ${step.action}`}</ActionButton></th>
                 <td className="whitespace-pre-wrap break-words px-3 py-3 text-muted">{step.api === undefined ? '尚未分析' : step.api || '未呼叫 API'}</td>
-                <td className="whitespace-pre-wrap break-words px-3 py-3 text-muted">{step.transfer === undefined ? '尚未分析' : step.transfer || '無需傳遞資料'}</td>
-                <td className="whitespace-pre-wrap break-words px-3 py-3 text-muted">{step.condition || '未列額外條件'}</td>
-              </tr>
+                <td className="whitespace-pre-wrap break-words px-3 py-3 text-muted"><span className="line-clamp-2">{step.transfer === undefined ? '尚未分析' : step.transfer || '無需傳遞資料'}</span></td>
+                <td className="whitespace-pre-wrap break-words px-3 py-3 text-muted"><span className="line-clamp-2">{step.condition || '未列額外條件'}</span></td>
+              </tr>{expanded === index && <tr><td colSpan={4} className="space-y-2 bg-canvas px-4 py-3"><p className="whitespace-pre-wrap break-words text-muted">{`資料傳遞：${step.transfer === undefined ? '尚未分析' : step.transfer || '無需傳遞資料'}`}</p><p className="whitespace-pre-wrap break-words text-muted">{`等待／執行條件：${step.condition || '未列額外條件'}`}</p><ActionButton variant="ghost" disabled={busy} onClick={() => onCode('source',step.source.path)} className="max-w-full whitespace-normal break-all text-left">{`${step.source.path}:${step.source.line}`}</ActionButton></td></tr>}</Fragment>
             ))}
           </tbody>
         </table>

@@ -30,12 +30,16 @@
 
 ## 任務狀態
 - [x] 已開始
-- [ ] 實作完成
-- [ ] 文件已同步
-- [ ] 設計文件已同步或註明不適用
-- [ ] 可供審查
+- [x] 實作完成
+- [x] 文件已同步
+- [x] 設計文件已同步或註明不適用
+- [x] 可供審查
 
 ## 驗證證據
+- 主區閱讀版：新增 FeatureReader，左樹／葉節點一次進入主區，API 流程／測試案例具 tablist、panel 關聯、左右鍵／Home／End，返回保留分類鏡頭及入口焦點。長資料兩行短讀，逐步展開完整資料；來源／問題收合且去除重複來源，閱讀時隱藏探索統計、未分類工具與重複新增入口。
+- 主區閱讀版 `npm run build --prefix apps/web` 與 `npm test`（22／22）通過。三個 `DS_REQUIRE_BROWSER=1` gates（verify-frontend-overview-ui、verify-catalog-ui、verify-case-sequence-ui）通過，包括左側直達、返回鏡頭、分頁鍵盤、零案例、新增案例綁定功能與儲存回案例分頁、案例返回、來源預覽、來源／版本拒配、axe／contrast、390／1024／1280／1440／1920 溢位、縮放、focus 與 target size。未改後端，本輪不重跑完整工作區替身服務。
+- Astryx CLI 0.7.14 已實際讀取本次 build 與 TabList 指引，採主區分頁／麵包屑，沿用專案 ds 與 Tailwind，不安裝第二套 runtime。impeccable context 因本機引擎與 cache 權限未啟動，已明示後改讀現有 DESIGN.md、Operate／craft-floor 指引；不宣稱該引擎檢查通過。
+- 已實際檢視全畫面與操作新控制項，以記憶體影像確認完整主區閱讀及資訊層次，未保存截圖。異動 TSX 以 Node 驗證無 inline style、native select、emoji、raw color／px、@apply；文件、計畫索引與最終差異檢查同步。
 - 最新調整：功能詳情預設可見四欄流程表，來源收合；map-flow-detail 及 feature-flow token 提供桌面寬度與窄窗局部捲動。sequence 選填 api／transfer，舊資料不猜值，網站 AI schema 與本機 skill 同步，baseline 版本提升為2。
 - 表格版最終 `npm run build --prefix apps/web`、`npm test`（22／22）、沙箱外 `npm run test:workspace`（58／58）均通過；API 欄位型別／長度、套用保留與版本1升級為2亦在回歸範圍。
 - 表格版 `DS_REQUIRE_BROWSER=1 node scripts/verify-frontend-overview-ui.mjs` 通過零案例表格預設可讀、API／傳遞／條件內容、無呼叫狀態、舊欄位未知、鍵盤展開來源、來源預覽、過期提示、axe／contrast 與390至1920寬度；案例與既有地圖兩個 gate 亦通過。已實際查看記憶體畫面，未保存預覽截圖。來源預覽後先用適合視窗再選圖節點，避免窄圖視窗中點擊畫布外節點。

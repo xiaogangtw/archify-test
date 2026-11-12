@@ -111,6 +111,7 @@ export function FeatureMap({
     if (!svg.current) return;
     const observer = new ResizeObserver(entries => {
       const rect = entries[0].contentRect;
+      if (rect.width < 1 || rect.height < 1) return;
       setFrame({ width: rect.width, height: rect.height });
     });
     observer.observe(svg.current);

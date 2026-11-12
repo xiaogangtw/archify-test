@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { operation, settings } from './client';
 import type { LocalConfig } from './client';
@@ -6,6 +6,7 @@ import { CaseEditor } from './CaseEditor';
 import { FeatureMap } from './FeatureMap';
 import { GapReport } from './GapReport';
 import { MapDetails } from './MapDetails';
+import { FeatureReader } from './FeatureReader';
 import {
   directChildFeatures,
   featureAncestors,
@@ -81,6 +82,10 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
   const [config, setConfig] = useState<LocalConfig>();
   const [view, setView] = useState<CatalogView>();
   const [featureId, setFeatureId] = useState('overview');
+  const [readingFeatureId, setReadingFeatureId] = useState<string>();
+  const readingOrigin = useRef<HTMLElement | SVGElement | null>(null);
+  const [readingCaseId, setReadingCaseId] = useState<string>();
+  const [readerInitialTab, setReaderInitialTab] = useState<'api' | 'cases'>('api');
   const [selected, setSelected] = useState<MapNode>();
   const [editor, setEditor] = useState<TestIntent>();
   const [layer, setLayer] = useState<'product' | 'tests'>('product');
@@ -195,6 +200,17 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
     view?.cases.filter(row => featureId === 'overview' || subtreeIds?.has(row.featureId)) || [];
 
   function navigateFeature(nextId: string) {
+    const feature = view?.catalog.features.find(item => item.id === nextId);
+    if (feature && !view?.catalog.features.some(item => item.frontend?.parentId === nextId)) {
+      if (!readingFeatureId) readingOrigin.current = document.activeElement as HTMLElement | SVGElement;
+      setReadingFeatureId(nextId);
+      setReaderInitialTab('api');
+      setReadingCaseId(undefined);
+      setCode(undefined);
+      return;
+    }
+    setReadingFeatureId(undefined);
+    setReadingCaseId(undefined);
     setFeatureId(nextId);
     setSelected(undefined);
     setCode(undefined);
@@ -214,13 +230,16 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
   }
 
   function select(node?: MapNode) {
-    if (
-      node?.kind === 'feature' &&
-      node.featureId &&
-      (featureId === 'overview' || node.featureId !== featureId)
-    ) {
+    if (node?.kind === 'feature' && node.featureId) {
       navigateFeature(node.featureId);
-      if (!view?.catalog.features.some(feature => feature.frontend?.parentId === node.featureId)) setSelected(node);
+      return;
+    }
+    if (node?.caseId && node.featureId) {
+      readingOrigin.current = document.activeElement as HTMLElement | SVGElement;
+      setReadingFeatureId(node.featureId);
+      setReadingCaseId(node.caseId);
+      setReaderInitialTab('cases');
+      setCode(undefined);
       return;
     }
     setSelected(node);
@@ -260,12 +279,13 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
 
   function add(script = '', newFeature = false) {
     const declared = view?.scripts.find(row => row.path === script)?.caseIds[0];
+    const targetFeatureId = readingFeatureId || featureId;
     setEditor({
       id: declared || 'TC-' + crypto.randomUUID().slice(0, 8),
       featureId:
-        newFeature || !featureId || featureId === 'overview'
+        newFeature || !targetFeatureId || targetFeatureId === 'overview'
           ? 'F-' + crypto.randomUUID().slice(0, 8)
-          : featureId,
+          : targetFeatureId,
       title: '',
       kind: script.includes('/flows/') ? 'flow' : 'api',
       purpose: '',
@@ -305,7 +325,8 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
       await operation(config, 'catalog-save', { revision: view.revision, catalog });
       const next = await operation<CatalogView>(config, 'catalog');
       setView(next);
-      setFeatureId(record.featureId);
+      if (!readingFeatureId) setFeatureId(record.featureId);
+      else setReaderInitialTab('cases');
       setEditor(undefined);
       setMode('map');
       setLayer('tests');
@@ -354,6 +375,7 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
   const currentCoverage =
     view && currentFeature ? featureTreeCoverage(currentFeature.id, view, coverageCache) : undefined;
   const fa = view?.catalog.frontendAnalysis;
+  const readingFeature = view?.catalog.features.find(item => item.id === readingFeatureId);
   const showFeatureLabelInList = !subtreeIds || subtreeIds.size > 1;
 
   return (
@@ -386,13 +408,13 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
             >
               {busy ? '正在讀取…' : '重新讀取'}
             </ActionButton>
-            <ActionButton
+            {!readingFeature && <ActionButton
               icon="plus"
               disabled={busy || !view || !!editor || ai.running}
               onClick={() => add()}
             >
               新增測試
-            </ActionButton>
+            </ActionButton>}
           </>
         }
       />
@@ -438,11 +460,11 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
                 variant="ghost"
                 align="start"
                 disabled={!!editor}
-                aria-pressed={featureId === 'overview'}
+                aria-pressed={!readingFeatureId && featureId === 'overview'}
                 onClick={() => navigateFeature('overview')}
                 className={cx(
                   'w-full',
-                  featureId === 'overview' && 'bg-surface-active font-medium text-ink',
+                  !readingFeatureId && featureId === 'overview' && 'bg-surface-active font-medium text-ink',
                 )}
               >
                 全部功能
@@ -451,7 +473,7 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
                 <ul className="space-y-1">
                   {visibleFeatures.map(({ feature, depth }, index) => {
                     const cov = featureTreeCoverage(feature.id, view, coverageCache);
-                    const active = feature.id === featureId;
+                    const active = feature.id === (readingFeatureId || featureId);
                     const topGroup = !query.trim() && depth === 0 && cov.isGroup;
                     const subGroup = cov.isGroup && !topGroup;
                     const collapsed = !query.trim() && collapsedSet.has(feature.id);
@@ -593,7 +615,7 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
               </ActionButton>
             </div>
 
-            {view.unlinkedScripts.length > 0 && (
+            {!readingFeature && view.unlinkedScripts.length > 0 && (
               <Disclosure
                 summary={`尚未分類（${view.unlinkedScripts.length}）`}
                 className="bg-surface-subtle"
@@ -623,7 +645,7 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
           </section>
 
           <div className="min-w-0 space-y-4">
-            {featureId === 'overview' && fa && !editor && (
+            {featureId === 'overview' && fa && !editor && !readingFeature && (
               <StatStrip
                 items={[
                   { label: '識別功能', value: fa.coverage.features },
@@ -657,6 +679,14 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
               </Surface>
             ) : (
               <>
+                {readingFeature && <>
+                  <div hidden={!!readingCaseId}><FeatureReader initialTab={readerInitialTab} key={readingFeature.id} feature={readingFeature} view={view} busy={busy} code={code} onBack={() => { setReadingFeatureId(undefined); setCode(undefined); requestAnimationFrame(() => readingOrigin.current?.focus()); }} onNavigate={navigateFeature} onCode={(scope,path) => void readCode(scope,path)} onCase={setReadingCaseId} onAddCase={() => add()} /></div>
+                  {readingCaseId && <div className="space-y-3">
+                  <ActionButton onClick={() => { setReadingCaseId(undefined); setCode(undefined); }}>返回測試案例</ActionButton>
+                  <MapDetails node={{ id: 'case:' + readingCaseId, kind: 'case', caseId: readingCaseId, featureId: readingFeature.id, label: view.cases.find(row => row.id === readingCaseId)?.title || '測試案例', x: 0, y: 0 }} featureId={readingFeature.id} view={view} busy={busy} code={code} onClose={() => { setReadingCaseId(undefined); setCode(undefined); }} onEdit={id => setEditor(view.catalog.cases.find(row => row.id === id))} onCode={(scope,path) => void readCode(scope,path)} onCase={setReadingCaseId} onFeature={navigateFeature} onCopy={text => void copy(text)} />
+                </div>}
+                </>}
+                <div hidden={!!readingFeature} className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <SegmentedGroup
                     label="顯示方式"
@@ -760,11 +790,10 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
                   <div
                     className={cx(
                       'grid min-w-0 gap-4',
-                      selected && (selected.kind === 'feature' ? 'map-wide:grid-cols-map-flow-detail' : 'map-wide:grid-cols-map-detail'),
                     )}
                   >
                     {mode === 'map' ? (
-                      <div className="min-w-0">
+                      <div hidden={!!selected} className="min-w-0">
                         <FeatureMap
                           key={featureId + layer}
                           layer={layer}
@@ -777,7 +806,7 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
                         />
                       </div>
                     ) : (
-                      <Surface padding="none" className="min-w-0 overflow-hidden" aria-label="測試清單">
+                      <Surface hidden={!!selected} padding="none" className="min-w-0 overflow-hidden" aria-label="測試清單">
                         {cases.length > 0 ? (
                           <table aria-label="測試清單" className="w-full table-fixed text-left">
                             <thead>
@@ -895,10 +924,11 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
                     )}
                   </div>
                 )}
+                </div>
               </>
             )}
 
-            {!!view.warnings.length && (
+            {!readingFeature && !!view.warnings.length && (
               <Disclosure
                 summary={<span className="text-warning">{`讀取限制（${view.warnings.length}）`}</span>}
               >
@@ -910,7 +940,7 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
               </Disclosure>
             )}
 
-            <Disclosure summary="手動分析工具" className="bg-surface-subtle">
+            <div hidden={!!readingFeature}><Disclosure summary="手動分析工具" className="bg-surface-subtle">
               <div className="space-y-4">
                 <p className="text-muted">
                   平常使用上方「AI 分析功能」即可自動完成；僅於自動分析失敗，或需在本機編輯器手動微調提案時依序操作：
@@ -966,7 +996,7 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
                   />
                 </Disclosure>
               </div>
-            </Disclosure>
+            </Disclosure></div>
           </div>
         </div>
       )}

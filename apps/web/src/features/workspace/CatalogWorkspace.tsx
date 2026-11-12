@@ -220,6 +220,7 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
       (featureId === 'overview' || node.featureId !== featureId)
     ) {
       navigateFeature(node.featureId);
+      if (!view?.catalog.features.some(feature => feature.frontend?.parentId === node.featureId)) setSelected(node);
       return;
     }
     setSelected(node);

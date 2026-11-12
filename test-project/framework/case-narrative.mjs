@@ -18,5 +18,5 @@ export function caseActual(record, observed) {
   const completed = before.filter(s => s.status === 'passed' && !/^\d+\.|^清理|^前置/.test(s.name)).slice(-2);
   return (completed.length ? '完成：' + completed.map(s => s.name).join(' → ') + '。' : '')
     + (failure ? '停在「' + failure.name + '」：' + (failure.actual || failure.error || '未保存失敗原因。') : '未保存失敗位置。')
-    + '後續結果未驗證。';
+    + '後續業務結果尚未驗證。';
 }

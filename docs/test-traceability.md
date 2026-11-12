@@ -1,8 +1,8 @@
 # 功能、知識與測試關聯
 
-文件版本：1.9
+文件版本：1.11
 
-最後更新：2026-11-11
+最後更新：2026-11-12
 
 測試報告分 API 與畫面兩類，畫面標示 web／android，分別固定寫入獨立專案 reportDir/api、reportDir/ui，日期時間命名並輸出 JSON／HTML／TXT。schemaVersion 1 新增 testType、screenshotsEnabled、target、dataMode、screenshots，保留舊根目錄報告。config/report.json 的截圖預設關閉，網站可保存下次執行選項；僅新版畫面 fixtures 在開啟時擷取 PNG，API 不留圖。一般畫面使用本機前端 WEB_BASE_URL 與 LIFF mock，並對實際 BFF 資料及 DOM 分別斷言；原生推播另使用 Appium。網站可啟動既有本機 AVD／Appium及選裝置，不提供產品腳本執行，不恢復 VM／舊 Control API。依使用者補充，本輪只準備框架與環境，不開啟 LINE、不擷取實際手機畫面、不發送推播。完整契約見 docs/ui-testing-reports.md。
 
@@ -14,6 +14,8 @@
 
 | 版本 | 日期 | 說明 |
 | --- | --- | --- |
+| 1.11 | 2026-11-12 | 序列圖前移至功能詳情，AI 分析依前端證據產生互動與條件，無案例也可閱讀；舊分析下次執行完整升級，來源異動標示舊圖。功能 metadata 新增選填 sequence，未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
+| 1.10 | 2026-11-12 | 案例詳情新增按需序列圖與版本相符的逐步結果，steps 選填 interaction，catalog 回應 latest 新增 name／status 摘要；未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 1.9 | 2026-11-11 | 案例規劃 `steps` 擴充選填 `data`（使用資料，最多 2000 字）且輸入／前置步驟允許 `expected` 留空，CaseEditor 支援三欄步驟編輯，`?view=flows` 改為四欄步驟矩陣表格與原生折疊摘要，功能地圖「測試流程」層支援多列網格排列；未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 1.8 | 2026-11-11 | 案例擴充選填 `factor`（測試因子）與 `decisionTable`（決策矩陣表）支援高可讀性減重規劃，功能地圖新增「缺口與覆蓋報表」（含測試金字塔佔比、孤立／廢棄清理清單與 PRD／知識提醒）；未改路由、守衛、導向、API、GraphQL payload 或 DB schema。 |
 | 1.7 | 2026-11-09 | 測試流程依 target 明確分類，舊案例保留相容並提示待補，初始化 AI 指引同步。未改路由、守衛、導向、API、GraphQL payload 或 DB schema。 |
@@ -26,6 +28,20 @@
 | 1.0 | 2026-11-08 | 建立案例目錄、專案知識分類編修、腳本關聯與版本證據及網站入口；新增本機 catalog／knowledge-update 契約與 view=catalog／knowledge，未改產品 API、GraphQL payload、守衛或 DB schema。 |
 
 ## 權威來源與操作
+
+### 案例流程與序列圖
+
+功能序列圖是測試前入口：點功能就在說明下方展開有前端來源的互動，無案例也可閱讀，無測試狀態。資料為 feature.frontend.sequence（最多 30 項 action／from／to／condition／source），由功能 AI 分析及手動提案驗證套用，並依 frontendAnalysis.files 比對來源 hash；舊圖會明示來源變更，無資料則提示重新分析或證據不足。案例 steps.interaction 仍表達特定測試路徑，不自動從功能圖複製或配對測試結果。詳見 [前端功能總覽](frontend-feature-overview.md)。
+
+互動來源須同時納入所屬 feature.sources，沿用既有逐檔 hash 版本檢查；未納入、無基準、遺失或已變動均列來源問題並停用逐步結果標示。這不等於部署版本證明。
+
+功能地圖 → 功能 → 測試流程／測試清單 → 案例詳情為同一閱讀入口。案例先顯示操作與預期，序列圖預設收合，箭頭編號對應步驟；未提供互動的步驟仍完整列出，不從靜態可達 API 推測順序，不增加獨立圖庫。參考 Astryx CLI 0.7.14 的 Collapsible 與垂直步驟版型，沿用專案 ds 及 Tailwind token，未導入 Astryx runtime 或第二套樣式。
+
+schemaVersion 1 的 steps 選填 `interaction: { from, to, source: { path, line } }`，from／to 各最多 80 字，source 是前端安全相對程式檔案及正整數行號。每列一個互動，回應另列步驟；無證據不填，不推測後端內部流程或保存 token。可開啟既有唯讀程式碼預覽；引用只供查證，不證明業務正確。舊案例不自動補造互動，規劃 skill 於選定流程後依前端及知識補充。
+
+catalog 的 latest 新增 steps（僅 name／status），不增加原始回應或錯誤內容。僅 freshness=current、無來源問題、唯一腳本，且規劃 action 與報告 name 都唯一並完全相同時呈現逐步狀態。缺步驟、同名、版本不符或證據不足標示「未對應」，不推定未執行。失敗箭頭搭配步驟狀態文字，證據由「查看報告」閱讀；這是失敗觀測位置，不代表已查明後端根因。失敗敘述明示「後續業務結果尚未驗證」。
+
+驗證：`DS_REQUIRE_BROWSER=1 node scripts/verify-case-sequence-ui.mjs`，使用暫存案例／報告與正式建置驗證配對、重複拒配、版本變更、來源預覽、編輯保留、鍵盤、axe 與桌面溢位，不呼叫產品 API。
 
 knowledge 保存業務依據；test-cases/catalog.json 保存測試意圖；api／tests 保存請求及實作；reports 保存該次執行。地圖於讀取時從同一資料產生，不另存一份人工流程，也不讓腳本自動改寫需求。網站可啟動本機 Codex 分析來源與知識，模型回傳資料由平台驗證套用；不修改／執行測試腳本。
 

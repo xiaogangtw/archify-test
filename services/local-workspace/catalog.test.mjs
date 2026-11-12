@@ -6,6 +6,22 @@ import { fixture, request } from './test-support.mjs';
 import { scriptEvidence, caseEvidence } from '../../test-project/support/script-evidence.mjs';
 import { createHandler } from './plugin.mjs';
 import { renderHtml } from '../../test-project/framework/journey-report.mjs';
+import { validateCatalog } from './catalog.mjs';
+import { intentHash } from '../../test-project/support/script-evidence.mjs';
+
+test('序列互動保持選填、驗證安全來源且納入案例版本', () => {
+  const row = { id:'TC-SEQUENCE', featureId:'F-SEQ', title:'登入', kind:'flow', purpose:'核對順序', preconditions:'無', data:'無', expected:'成功', knowledgeIds:[], questions:[], steps:[{action:'登入請求',expected:'回傳結果'}] };
+  const catalog = {schemaVersion:1,features:[{id:'F-SEQ',name:'登入',sources:[]}],cases:[row]};
+  assert.equal(validateCatalog(catalog), catalog);
+  const previous = intentHash(row);
+  row.steps[0].interaction = {from:'前端',to:'API',source:{path:'src/login.ts',line:12}};
+  assert.equal(validateCatalog(catalog), catalog);
+  assert.notEqual(intentHash(row), previous);
+  for (const source of [{path:'../outside.ts',line:1},{path:'.env',line:1},{path:'src/a.ts',line:0},{path:'C:/secret.ts',line:1}]) {
+    assert.throws(() => validateCatalog({...catalog,cases:[{...row,steps:[{...row.steps[0],interaction:{from:'前端',to:'API',source}}]}]}), /互動來源/);
+  }
+  assert.throws(() => validateCatalog({...catalog,cases:[{...row,steps:[{...row.steps[0],interaction:{from:'',to:'API',source:{path:'src/a.ts',line:1}}}]}]}), /互動來源/);
+});
 
 test('案例／知識／來源關聯不執行腳本，版本依賴更新不沿用舊通過', async () => {
   const f = await fixture();
@@ -33,6 +49,7 @@ test('案例／知識／來源關聯不執行腳本，版本依賴更新不沿�
     view = await f.workspace.catalog(); assert.equal(view.cases[0].freshness, 'current');
     const single={schemaVersion:1,kind:'execution',project:'合成單檔歷史',runId:'abcdef12-3456',createdAt:new Date(Date.now()+1000).toISOString(),cases:[{id:'TC-ONE',caseId:'TC-ONE',name:'單檔案例',purpose:'歷史追蹤',source:'tests/flows/Card.spec.ts',sourceHash:evidence.hash,status:'passed',steps:[{name:'讀取名片',expected:'合成',status:'passed'}],scriptEvidence:evidence,caseEvidence:caseEvidence(f.project,'tests/flows/Card.spec.ts','TC-ONE')}]};
     await writeFile(join(f.project,'reports/report-single.html'),renderHtml(single));
+    assert.deepEqual((await f.workspace.catalog()).cases[0].latest.steps, [{name:'讀取名片',status:'passed'}]);
     view=await f.workspace.catalog();assert.equal(view.cases[0].latest.report,'report-single.html');assert.equal(view.cases[0].freshness,'current');
     await writeFile(join(f.source, 'src/cards.gql'), 'query GetCard($id: ID!) { card(id:$id) { id } }\n# source changed');
     view = await f.workspace.catalog(); assert.ok(view.cases[0].issues.some(issue => issue.text.includes('前端來源在上次分析後已變更')));

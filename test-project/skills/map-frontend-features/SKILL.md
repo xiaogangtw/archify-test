@@ -5,6 +5,8 @@ description: 根據前端來源證據包整理全部頁面與業務功能、保�
 
 # 整理前端功能
 
+每個功能可附 sequence（最多 30 項 `{action, from, to, condition, source:{path,line}}`），直接依前端事件、await／回呼、回應處理及導航條件描述一條可確認主路徑。action 最多 300 字，from／to 各 80 字，condition 最多 500 字、無條件填空字串；引用需為 evidence.files 的有效檔案及行號。沒有證據填 []，其餘分支與缺口寫 questions，不把互斥或並行互動畫成無條件先後，不推測後端內部服務或 token 值。序列圖屬功能，無案例亦可閱讀；不可從 import 可達 API 排序捏造互動。
+
 先讀 AGENTS.md、test-cases/catalog.json、knowledge/README.md，以及 analysis/feature-evidence.json。網站「準備分析資料」會更新唯讀路由、頁面、匯入可達 API、來源 hash、previousFeatures 與 changes；不是 AI 已完成分析。若使用自訂分析目錄，以 archify.config.json 的 analysisDir 為準。
 
 依路由標題、頁面職責、實際程式與相關知識整理功能，讀來源時只使用目前使用者允許的前端根目錄。證據包不含秘密或整份程式；相對來源與行號用於查證。匯入可達不等於實際呼叫或業務順序。保留原功能 ID、名稱及人工案例；增量更新優先看 changes.affectedFeatures、修改／新增來源，但仍需完整列出其餘保留功能及未分配頁面／API。消失功能不能直接刪案例或腳本。

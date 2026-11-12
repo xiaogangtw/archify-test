@@ -1,4 +1,5 @@
 export type TestFactor = 'positive' | 'negative' | 'boundary' | 'security' | 'error';
+export interface FeatureInteraction { action: string; from: string; to: string; condition: string; source: { path: string; line: number } }
 export interface DecisionRow { point: string; input: string; expected: string }
 export const factorLabels: Record<TestFactor, string> = {
   positive: '正向冒煙',
@@ -7,12 +8,12 @@ export const factorLabels: Record<TestFactor, string> = {
   security: '安全權限',
   error: '異常容錯',
 };
-export interface Feature { id: string; name: string; sources: { path: string; line: number }[]; frontend?: { description: string; pageIds: string[]; apiIds: string[]; questions: string[]; evidence: 'code' | 'inferred'; state: string; level?: 1 | 2 | 3 | 4; parentId?: string } }
+export interface Feature { id: string; name: string; sources: { path: string; line: number }[]; frontend?: { sequence?: FeatureInteraction[]; sequenceStale?: boolean; description: string; pageIds: string[]; apiIds: string[]; questions: string[]; evidence: 'code' | 'inferred'; state: string; level?: 1 | 2 | 3 | 4; parentId?: string } }
 export interface FrontendAnalysis { sourceHash: string; generatedAt: string; coverage: { features: number; pages: number; totalPages: number; apis: number; totalApis: number; unassignedPages: number; unassignedApis: number }; pages: { id: string; path: string; routeIds: string[]; apiIds: string[] }[]; routes: { id: string; url: string; title: string; component: string }[]; apis: { id: string; name: string; apiFile: string; evidence: { path: string; line: number }[] }[]; relations: { from: string; to: string; kind: string; evidence: string }[]; notes: string[] }
 export interface TestIntent {
   id: string; featureId: string; title: string; kind: 'api' | 'flow'; purpose: string; preconditions: string; data: string; expected: string;
   script?: string; knowledgeIds: string[]; knowledgeHash?: string; questions: { text: string; answer: string }[];
-  steps?: { action: string; data?: string; expected: string }[]; cleanup?: string; target?: 'api' | 'web' | 'mobile' | 'mixed';
+  steps?: { action: string; data?: string; expected: string; interaction?: { from: string; to: string; source: { path: string; line: number } } }[]; cleanup?: string; target?: 'api' | 'web' | 'mobile' | 'mixed';
   factor?: TestFactor; decisionTable?: DecisionRow[];
 }
 export interface Catalog { schemaVersion: 1; features: Feature[]; cases: TestIntent[]; frontendAnalysis?: FrontendAnalysis }
@@ -20,7 +21,7 @@ export interface CaseView extends TestIntent {
   review: { status: 'incomplete' | 'pending' | 'confirmed' | 'changed'; fingerprint: string; problems: string[]; confirmedAt: string | null };
   issues: { type: string; text: string }[]; scripts: string[]; declaredSteps: string[];
   apis: { path: string; name: string; evidence: { path: string; line: number }[]; inAnalysis: boolean }[];
-  latest: { report: string; createdAt: string; status: string } | null; freshness: 'never' | 'unknown' | 'current' | 'changed';
+  latest: { report: string; createdAt: string; status: string; steps?: { name: string; status: string }[] } | null; freshness: 'never' | 'unknown' | 'current' | 'changed';
 }
 export interface CatalogView {
   catalog: Catalog; revision: string; cases: CaseView[]; scripts: { path: string; caseIds: string[] }[]; unlinkedScripts: string[];
@@ -51,6 +52,7 @@ export function aiHandoff(row: CaseView, feature?: Feature) {
 待處理：${row.issues.map(issue => issue.text).join('；') || '請核對案例與腳本業務語意是否一致'}
 請遵守簡潔矩陣規格策略（公用前置導航收斂至 preconditions 一句話；steps 寫為簡短「步驟 action｜使用資料 data｜預期結果 expected」，純輸入步驟可留空 expected 僅於驗證步驟或總預期說明；欄位等價類與邊界校驗優先用 decisionTable 或步驟內編號列舉；嚴禁把長篇程式路徑／開發日誌塞入步驟或清理）。請保留案例 ID，用 archify-case annotation 關聯腳本，不 import 其他 spec、不改共用框架、不印 token。
 請依證據更新 knowledge、test-cases/catalog.json、api 或 tests；保留人工斷言，不以失敗結果放寬預期。不確定事項保留具體問題。
+需要序列圖時，在有前端來源證據的 steps 加 interaction: { from, to, source: { path, line } }，不推測後端內部流程。test.step 名稱與 action 完全一致且同案例唯一，供版本相符報告逐步對應。
 先做型別檢查；對產品執行尤其寫入仍須本次任務授權與清理方式。完成後由網站重新讀取，保留歷史報告。`;
 }
 
@@ -69,6 +71,7 @@ export function featureTestDraftHandoff(feature: Feature, view: CatalogView) {
 關聯頁面：${pages.map(page => page.path).join(', ') || '尚未對應'}
 靜態可達 API：${apis.map(api => `${api.name} (${api.apiFile})`).join(', ') || '尚未對應'}
 來源證據：${feature.sources.map(source => `${source.path}:${source.line}`).join(', ') || '無'}
+需要序列圖時，只為有來源證據的 steps 補 interaction: { from, to, source: { path, line } }；不要把靜態可達 API 排成假順序。test.step 與 action 保持完全一致及唯一。
 請依實際來源與知識庫補入 test-cases/catalog.json 及 tests/ 腳本（網頁操作使用 support/web-test.js 並保存操作證據），不猜測未確認的權限或回應，不印 token。完成後由網站重新讀取。`;
 }
 

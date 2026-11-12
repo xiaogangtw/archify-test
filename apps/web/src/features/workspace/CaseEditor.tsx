@@ -46,6 +46,7 @@ export function CaseEditor({
       entry => entry.point.trim() || entry.input.trim() || entry.expected.trim(),
     );
     const cleanedSteps = row.steps?.map(step => ({
+      ...(step.interaction ? { interaction: step.interaction } : {}),
       action: step.action,
       ...(step.data?.trim() ? { data: step.data } : {}),
       expected: step.expected,

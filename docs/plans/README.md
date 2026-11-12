@@ -6,6 +6,7 @@
 
 ### 2026-11
 
+- [案例互動順序與失敗定位](2026-11-12-case-sequence-reader.md)：已完成；前端、API、測試框架、文件治理
 - [對齊自動化測試與案例設計指南（全量補強）](2026-11-11-test-guide-alignment.md)：進行中；前端、框架、AI 分析、文件治理
 - [初始設定點選本機資料夾直接開啟資料夾選擇器](2026-11-11-setup-local-folder-picker.md)：已完成；前端、本機設定引導、文件治理
 - [清除專案專屬測試資料與重建乾淨本機 Git 歷史](2026-11-11-scrub-product-data-orphan-git.md)：已完成；框架治理、文件治理、測試資料隔離、Git 清理
@@ -105,6 +106,10 @@
 ### 前端、API、Android
 
 - [Appium 報告失敗證據](2026-11-03-appium-report-errors.md)：進行中；前端、API、Android
+
+### 前端、API、測試框架、文件治理
+
+- [案例互動順序與失敗定位](2026-11-12-case-sequence-reader.md)：已完成；前端、API、測試框架、文件治理
 
 ### 前端、文件
 

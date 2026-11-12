@@ -22,12 +22,18 @@ test('路由、頁面與 alias 匯入唯讀取證，提案需完整交代覆蓋�
   assert.ok(!JSON.stringify(evidence).includes('DO_NOT_EXECUTE'));
   const feature={id:'F-CARD',name:'名片',description:'名片管理',evidence:'code',sources:[{path:'src/routes.tsx',line:1}],pageIds:evidence.pages.map(p=>p.id),apiIds:evidence.apis.map(a=>a.id),questions:['權限需確認']};
   const proposal={schemaVersion:1,sourceHash:evidence.sourceHash,catalogRevision:evidence.catalogRevision,generatedAt:new Date().toISOString(),features:[feature],relations:[],unassignedPageIds:[],unassignedApiIds:[],notes:[]};
+  feature.sequence=[{action:'請求名片',from:'前端',to:'名片 API',condition:'進入頁面時',source:{path:'src/pages/CardPage.tsx',line:1}}];
+  for(const source of [{path:'.env',line:1},{path:'src/pages/CardPage.tsx',line:9000}])assert.throws(()=>validateFeatureMap({...proposal,features:[{...feature,sequence:[{...feature.sequence[0],source}]}]},evidence));
+  assert.throws(()=>validateFeatureMap({...proposal,features:[{...feature,sequence:Array(31).fill(feature.sequence[0])}]},evidence));
   assert.equal(validateFeatureMap(proposal,evidence).features,1);
   assert.throws(()=>validateFeatureMap({...proposal,features:[{...feature,pageIds:[]}]},evidence));
   assert.throws(()=>validateFeatureMap({...proposal,features:[{...feature,sources:[{path:'.env',line:1}]}]},evidence));
   await writeFile(join(f.project,'analysis/feature-map.proposal.json'),JSON.stringify(proposal));
   await f.workspace.applyFrontendFeatures();
   let current=await f.workspace.catalog();assert.equal(current.catalog.frontendAnalysis.coverage.pages,1);
+  assert.deepEqual(current.catalog.features[0].frontend.sequence,feature.sequence);
+  assert.equal(current.catalog.features[0].frontend.sequenceStale,false);
+  assert.equal(current.catalog.cases.length,0);
   const originalCases=JSON.stringify(current.catalog.cases);
   current.catalog.features[0].name='人工命名';
   await f.workspace.saveCatalog({revision:current.revision,catalog:current.catalog});
@@ -37,7 +43,8 @@ test('路由、頁面與 alias 匯入唯讀取證，提案需完整交代覆蓋�
   await applyFeatureMap(f.project,{...proposal,catalogRevision:nextEvidence.catalogRevision},nextEvidence,f.source);
   current=await f.workspace.catalog();assert.equal(current.catalog.features[0].name,'人工命名');assert.equal(JSON.stringify(current.catalog.cases),originalCases);
   await writeFile(join(f.source,'src/pages/CardPage.tsx'),'export default function CardPage(){return null;}');
-  await assert.rejects(()=>applyFeatureMap(f.project,{...proposal,catalogRevision:current.revision},nextEvidence,f.source),/來源已變更/);
+  assert.equal((await f.workspace.catalog()).catalog.features[0].frontend.sequenceStale,true);
+  await assert.rejects(()=>applyFeatureMap(f.project,{...proposal,catalogRevision:nextEvidence.catalogRevision},nextEvidence,f.source),/來源已變更/);
   await f.workspace.prepareFrontendFeatures();
   const changed=JSON.parse(await readFile(join(f.project,'analysis/feature-evidence.json'),'utf8'));
   assert.ok(changed.changes.modified.includes('src/pages/CardPage.tsx'));

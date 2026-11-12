@@ -1,14 +1,18 @@
 # Archify Design System
 
-文件版本：1.25
+文件版本：1.27
 
-最後更新：2026-11-11
+最後更新：2026-11-12
 
 測試報告分 API 與畫面兩類，畫面標示 web／android，分別固定寫入獨立專案 reportDir/api、reportDir/ui，日期時間命名並輸出 JSON／HTML／TXT。schemaVersion 1 新增 testType、screenshotsEnabled、target、dataMode、screenshots，保留舊根目錄報告。config/report.json 的截圖在新專案預設開啟，既有明確關閉保留，網站可保存下次執行選項；僅新版畫面 fixtures 在開啟時擷取 PNG，API 不留圖。一般畫面使用本機前端 WEB_BASE_URL 與 LIFF mock，並對實際 BFF 資料及 DOM 分別斷言；原生推播另使用 Appium。網站可啟動既有本機 AVD／Appium及選裝置，不提供產品腳本執行，不恢復 VM／舊 Control API。依使用者補充，本輪只準備框架與環境，不開啟 LINE、不擷取實際手機畫面、不發送推播。完整契約見 docs/ui-testing-reports.md。
 
 知識上傳每來源最多 10 MB，每批 20 份、總共 20 MB；支援 MD／HTML／TXT／PNG／JPEG／WebP。原始文件與圖片保存 knowledge/sources，整理文字仍採每份 128 KB、最多 500 份的有效知識；索引 sources 與 README 連結保留原始證據。大型來源逐段分析，超過模型容量的現有知識先檢索候選再比對全文，未選中資料不刪除。圖片只認可見文字及版面，不推測動作或後端，強制標記用途未指定。知識頁可查看原圖及下載原檔；新增 POST /local-api/knowledge-source（id／sha256），同來源 session、路徑、大小與 hash 驗證。完整限制見網站 AI 文件。
 
 ## 流程與報告閱讀器
+
+功能詳情先說明功能，再提供按需展開序列圖，最後才呈現對應測試與新增案例操作；零案例也能看圖。最末層功能點一次即開詳情，分類仍保留鑽研。圖搭配短步驟、條件與來源，無資料明示更新分析或證據不足，不以漏測狀態阻擋流程理解。功能圖不顯示測試結果，來源過期有文字提示；案例結果仍在案例詳情。共用 SequenceDiagram 沿用固定深色、14px 與局部捲動，無新增動畫或樣式系統。
+
+案例詳情採「步驟與預期 → 按需序列圖 → 來源及原報告」的閱讀順序；步驟始終可見，序列圖預設收合，編號對應文字，不另加獨立圖庫或編輯控制。參考 Astryx CLI 0.7.14 的 Collapsible 與垂直步驟版型，保留既有 ds 與 Tailwind token；SVG 僅用於互動幾何，過寬圖在具鍵盤焦點的區域內水平捲動。失敗搭配文字與語意色，無動畫、無資料不畫假圖，沒有新增 loading 或假狀態；來源預覽按鈕沿用 busy 禁用。未對應狀態不等同未執行。
 
 現行入口提供前端來源分析、獨立腳本輸出與測試流程／結果閱讀。沿用 GitHub 式黑灰深色、Inter／Noto Sans TC、14px 內文、20px 頁標題與 32px compact 控制項；唯一 token 來源仍是 apps/web/tailwind.config.ts。
 
@@ -87,6 +91,8 @@ Inter／Noto Sans TC，字重 400／500／700。一般內文、側欄、表單�
 
 | 版本 | 日期 | 說明 |
 | --- | --- | --- |
+| 1.27 | 2026-11-12 | 序列圖前移至功能詳情，AI 分析依前端證據產生互動與條件，無案例也可閱讀；舊分析下次執行完整升級，來源異動標示舊圖。功能 metadata 新增選填 sequence，未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
+| 1.26 | 2026-11-12 | 案例詳情以可見步驟與按需序列圖呈現來源及保守逐步狀態，沿用 Astryx 閱讀層次及專案 token；未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema，catalog 回應新增步驟摘要。 |
 | 1.25 | 2026-11-11 | 測試流程表格（`?view=flows`）改為四欄橫向步驟矩陣（案例／功能｜測試步驟｜使用資料｜預期結果）並以原生 `<details>` 折疊長篇舊內容，案例規劃編輯器支援三欄步驟與 `data` 欄位，功能地圖「測試流程」層採 1~4 欄多列網格排版與可讀初始縮放；未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 1.24 | 2026-11-11 | 依 Meta Astryx（`@astryxdesign/cli@0.7.13`）設計方法建立共用意圖設計系統 `apps/web/src/components/ui/ds/`，新增 `surface-subtle`／`surface-active` 表面階梯色、`lg:grid-cols-map-browser` 調整為 `14rem`，並全面精簡工作區與閱讀器排版與文案；未改路由、守衛、導向、API、GraphQL payload 或 DB schema。 |
 | 1.23 | 2026-11-11 | 初始設定第一步點選「本機資料夾」直接開啟電腦資料夾選擇器（移除「選擇前端專案」按鈕與開啟中橫幅），第三步知識整理改採單一頂端橫幅 toast 並於完成後消失；未改路由、守衛、導向、API、GraphQL payload 或 DB schema。 |

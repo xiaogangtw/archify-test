@@ -7,6 +7,7 @@ import { scriptEvidence, intentHash } from '../../test-project/support/script-ev
 import { knowledgeStore } from './knowledge.mjs';
 import { operationStems } from './naming.mjs';
 import { planState, planId } from '../../test-project/support/case-plan.mjs';
+import { validFeatureSequence } from '../../test-project/support/feature-sequence.mjs';
 const digest = text => createHash('sha256').update(text).digest('hex');
 const id = value => typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_-]{0,79}$/.test(value);
 const text = (value, max = 20000) => typeof value === 'string' && value.length <= max && !value.includes('\0');
@@ -18,6 +19,7 @@ export function validateCatalog(value) {
   for (const row of value.features) {
     if (!row || !id(row.id) || features.has(row.id) || !text(row.name, 200) || !row.name.trim() || !Array.isArray(row.sources) || row.sources.length > 100 || row.sources.some(source => !source || !safePart(source.path) || !/\.(tsx?|jsx?|vue|svelte|gql|graphql)$/.test(source.path) || !Number.isInteger(source.line) || source.line < 1)) throw new Error('功能識別碼、名稱或來源格式不符。');
     features.add(row.id);
+    if (!validFeatureSequence(row.frontend?.sequence, source => safePart(source.path) && /\.(tsx?|jsx?|[cm]?[jt]s|vue|svelte|gql|graphql)$/.test(source.path) && Number.isInteger(source.line) && source.line > 0)) throw new Error('功能序列圖格式不符。');
     if (row.frontend && (!text(row.frontend.description,2000) || !Array.isArray(row.frontend.pageIds) || row.frontend.pageIds.some(value=>!id(value)) || !Array.isArray(row.frontend.apiIds) || row.frontend.apiIds.some(value=>!text(value,80)) || !Array.isArray(row.frontend.questions) || row.frontend.questions.some(question=>!text(question,2000)) || !['code','inferred'].includes(row.frontend.evidence) || !['active','not-found'].includes(row.frontend.state) || (row.frontend.level !== undefined && (!Number.isInteger(row.frontend.level) || ![1,2,3,4].includes(row.frontend.level))) || (row.frontend.parentId !== undefined && row.frontend.parentId !== null && !id(row.frontend.parentId)))) throw new Error('前端功能 metadata 格式不符。');
   }
   if (value.frontendAnalysis && (!Array.isArray(value.frontendAnalysis.pages) || !Array.isArray(value.frontendAnalysis.routes) || !Array.isArray(value.frontendAnalysis.apis) || !Array.isArray(value.frontendAnalysis.relations) || !value.frontendAnalysis.coverage || !/^[a-f0-9]{64}$/.test(value.frontendAnalysis.sourceHash))) throw new Error('前端功能分析格式不符。');
@@ -28,6 +30,10 @@ export function validateCatalog(value) {
   for (const row of value.cases) {
     if (!row || !id(row.id) || cases.has(row.id) || !features.has(row.featureId) || !text(row.title, 200) || !row.title.trim() || !['api', 'flow'].includes(row.kind) || !['purpose', 'preconditions', 'data', 'expected'].every(key => text(row[key])) || !Array.isArray(row.knowledgeIds) || row.knowledgeIds.length > 100 || row.knowledgeIds.some(value => !/^[a-f0-9-]{36}$/.test(value)) || !Array.isArray(row.questions) || row.questions.length > 100 || row.questions.some(q => !q || !text(q.text, 2000) || !q.text.trim() || !text(q.answer, 5000)) || (row.script && (!safePart(row.script) || !/^tests\/.+\.spec\.ts$/.test(row.script)))) throw new Error('案例資料、關聯或問題格式不符。');
     cases.add(row.id);
+    for (const step of Array.isArray(row.steps) ? row.steps : []) {
+      const interaction = step?.interaction;
+      if (interaction !== undefined && (!interaction || !text(interaction.from, 80) || !interaction.from.trim() || !text(interaction.to, 80) || !interaction.to.trim() || !interaction.source || !safePart(interaction.source.path) || !/\.(tsx?|jsx?|[cm]?[jt]s|vue|svelte|gql|graphql)$/.test(interaction.source.path) || !Number.isInteger(interaction.source.line) || interaction.source.line < 1)) throw new Error('步驟互動來源格式不符。');
+    }
     if ((row.steps !== undefined && (!Array.isArray(row.steps) || row.steps.length > 100 || row.steps.some(step => !step || !text(step.action, 5000) || (step.data !== undefined && !text(step.data, 2000)) || !text(step.expected, 5000)))) || (row.cleanup !== undefined && !text(row.cleanup)) || (row.target !== undefined && !['api', 'web', 'mobile', 'mixed'].includes(row.target)) || (row.factor !== undefined && !['positive', 'negative', 'boundary', 'security', 'error'].includes(row.factor)) || (row.decisionTable !== undefined && (!Array.isArray(row.decisionTable) || row.decisionTable.length > 100 || row.decisionTable.some(entry => !entry || !text(entry.point, 2000) || !text(entry.input, 2000) || !text(entry.expected, 2000))))) throw new Error('測試步驟、清理、因子、決策矩陣或驗證對象格式不符。');
   }
   if (Buffer.byteLength(json(value)) > 1024 * 1024) throw new Error('案例目錄超過 1 MB。');
@@ -73,6 +79,7 @@ export function catalogStore(config) {
         rows.push({name:file.name,createdAt:report.createdAt,cases:report.cases.map(item=>({
           caseId:item.caseId,source:item.source,status:item.status,sourceHash:item.sourceHash,
           scriptEvidence:item.scriptEvidence,caseEvidence:item.caseEvidence,
+          steps:Array.isArray(item.steps) ? item.steps.filter(step => step && text(step.name,5000) && ['passed','failed','skipped','not-run'].includes(step.status)).map(step => ({name:step.name,status:step.status})) : [],
         }))});
       } catch { /* A malformed historical file does not replace valid evidence. */ }
     }
@@ -112,6 +119,7 @@ export function catalogStore(config) {
       const old = await load();
       if (input.revision !== old.revision) throw new Error('案例已被其他工具修改，請重新讀取再儲存。');
       const next = validateCatalog(input.catalog);
+      for (const feature of next.features) if (feature.frontend) delete feature.frontend.sequenceStale;
       const knowledge = await knowledgeStore(config).list();
       for (const feature of next.features) for (const source of feature.sources) if (!source.hash) {
         const file = child(config.sourceRoot, source.path); await noLinks(file);
@@ -150,7 +158,17 @@ export function catalogStore(config) {
         catch (error) { if (error.code === 'ENOENT') sourceState.set(source.path, 'missing'); else throw error; }
       }
       const sourceIssues = new Map();
+      const sequenceHashes = new Map((value.catalog.frontendAnalysis?.files || []).map(file => [file.path,file.hash]));
       for (const feature of value.catalog.features) {
+        if (feature.frontend?.sequence?.length) {
+          let stale = feature.frontend.state === 'not-found';
+          for (const part of new Set(feature.frontend.sequence.map(step => step.source.path))) {
+            const file = child(config.sourceRoot, part); await noLinks(file);
+            try { const stat = await lstat(file); if (!stat.isFile() || stat.size > 1024 * 1024 || sequenceHashes.get(part) !== digest(await readFile(file))) stale = true; }
+            catch (error) { if (error.code === 'ENOENT') stale = true; else throw error; }
+          }
+          feature.frontend.sequenceStale = stale;
+        }
         const notes = [];
         for (const source of feature.sources) {
           const file = child(config.sourceRoot, source.path); await noLinks(file);
@@ -164,6 +182,8 @@ export function catalogStore(config) {
         const script = matches.length === 1 ? matches[0] : undefined;
         const issues = row.questions.filter(question => !question.answer.trim()).map(question => ({ type: 'question', text: question.text }));
         issues.push(...(sourceIssues.get(row.featureId) || []));
+        const featureSources = value.catalog.features.find(feature => feature.id === row.featureId)?.sources || [];
+        if ((row.steps || []).some(step => step.interaction && !featureSources.some(source => source.path === step.interaction.source.path))) issues.push({ type: 'source', text: '序列圖引用尚未納入功能來源，請補齊來源版本基準。' });
         if (!row.expected.trim()) issues.push({ type: 'expected', text: '缺少明確預期結果' });
         if (!matches.length) issues.push({ type: 'script', text: '尚未連結測試腳本' });
         if (matches.length > 1) issues.push({ type: 'duplicate', text: '同一案例連到多份腳本，請核對識別碼' });
@@ -180,14 +200,14 @@ export function catalogStore(config) {
           return item && script.apiContracts[api.path] && script.apiContracts[api.path] !== digest(JSON.stringify([item.kind, item.method, item.endpoint, item.body?.operationName || '', (item.body?.query || '').replace(/\s+/g, ' ').trim()]));
         })) issues.push({ type: 'source', text: '前端分析與 API 模組的請求契約不同，請核對 query、方法或端點' });
         if (script && !script.complete) issues.push({ type: 'dependency', text: '含無法完整追蹤的相對／動態依賴' });
-        const candidates = history.flatMap(report => report.cases.filter(item => item && ['passed', 'failed', 'skipped'].includes(item.status) && (item.caseId === row.id || (script && item.source === script.path && (!item.caseId || item.caseId === row.id)))).map(item => ({ report: report.name, createdAt: report.createdAt, status: item.status, evidence: item.scriptEvidence, caseEvidence: item.caseEvidence, sourceHash: item.sourceHash })));
+        const candidates = history.flatMap(report => report.cases.filter(item => item && ['passed', 'failed', 'skipped'].includes(item.status) && (item.caseId === row.id || (script && item.source === script.path && (!item.caseId || item.caseId === row.id)))).map(item => ({ report: report.name, createdAt: report.createdAt, status: item.status, steps: item.steps, evidence: item.scriptEvidence, caseEvidence: item.caseEvidence, sourceHash: item.sourceHash })));
         const latest = candidates[0];
         if (latest?.caseEvidence && latest.caseEvidence.intentHash !== intentHash(row)) issues.push({ type: 'intent', text: '案例意圖在上次執行後更新，請核對腳本並重新驗證' });
         if (latest?.caseEvidence && latest.caseEvidence.knowledgeHash !== knowledgeHash(row, knowledge.documents)) issues.push({ type: 'knowledge-run', text: '業務依據在上次執行後更新，舊結果未驗證新規則' });
         const freshness = !latest ? 'never' : !script || !latest.evidence?.complete || !script.complete || !latest.caseEvidence?.complete ? 'unknown' : latest.evidence.hash === script.hash && latest.caseEvidence.intentHash === intentHash(row) && latest.caseEvidence.knowledgeHash === knowledgeHash(row, knowledge.documents) ? 'current' : 'changed';
         const review = await planState(config.projectRoot, value.catalog, row);
         if (issues.some(issue => issue.type === 'source')) { review.problems.push('前端來源需要重新核對'); review.status = review.confirmedAt ? 'changed' : 'incomplete'; }
-        return { ...row, review, issues, script: script?.path || row.script || '', scripts: matches.map(item => item.path), declaredSteps: script?.steps || [], apis: linkedApis, latest: latest ? { report: latest.report, createdAt: latest.createdAt, status: latest.status } : null, freshness };
+        return { ...row, review, issues, script: script?.path || row.script || '', scripts: matches.map(item => item.path), declaredSteps: script?.steps || [], apis: linkedApis, latest: latest ? { report: latest.report, createdAt: latest.createdAt, status: latest.status, steps: latest.steps } : null, freshness };
       }));
       const linked = new Set(cases.flatMap(row => row.scripts));
       return { ...value, cases, scripts: allScripts.map(script => ({ path: script.path, caseIds: script.caseIds })), unlinkedScripts: allScripts.filter(script => !linked.has(script.path)).map(script => script.path), knowledge: knowledge.documents, warnings, analysisAvailable: !!analysis };

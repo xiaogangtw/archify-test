@@ -1,8 +1,8 @@
 # Archify 前端
 
-文件版本：2.31
+文件版本：2.33
 
-最後更新：2026-11-11
+最後更新：2026-11-12
 
 測試報告分 API 與畫面兩類，畫面標示 web／android，分別固定寫入獨立專案 reportDir/api、reportDir/ui，日期時間命名並輸出 JSON／HTML／TXT。schemaVersion 1 新增 testType、screenshotsEnabled、target、dataMode、screenshots，保留舊根目錄報告。config/report.json 的截圖在新專案預設開啟，既有明確關閉保留，網站可保存下次執行選項；僅新版畫面 fixtures 在開啟時擷取 PNG，API 不留圖。一般畫面使用本機前端 WEB_BASE_URL 與 LIFF mock，並對實際 BFF 資料及 DOM 分別斷言；原生推播另使用 Appium。網站可啟動既有本機 AVD／Appium及選裝置，不提供產品腳本執行，不恢復 VM／舊 Control API。依使用者補充，本輪只準備框架與環境，不開啟 LINE、不擷取實際手機畫面、不發送推播。完整契約見 docs/ui-testing-reports.md。
 
@@ -14,6 +14,8 @@
 
 | 版本 | 日期 | 說明 |
 | --- | --- | --- |
+| 2.33 | 2026-11-12 | 序列圖前移至功能詳情，AI 分析依前端證據產生互動與條件，無案例也可閱讀；舊分析下次執行完整升級，來源異動標示舊圖。功能 metadata 新增選填 sequence，未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
+| 2.32 | 2026-11-12 | 案例詳情新增流程步驟、收合序列圖、來源預覽與保守逐步結果配對；本機 catalog latest 新增 steps 摘要，未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 2.31 | 2026-11-11 | 功能地圖總覽摺疊單一純容器 L1 系統節點並彙整群組子功能覆蓋率，新增分支鑽研、頂列與詳情返回／階層麵包屑、節點懸停／聚焦完整名稱讀數列，側欄與 `WorkspaceShell` 左導覽欄皆採隱藏捲軸的獨立捲動（全斷點可捲動）並為功能樹補齊去紅點縮排及跨重載記憶收合資料夾，測試清單納入子樹並保留選中焦點及來源／問題摘要；未改路由、守衛、導向、API、GraphQL payload 或 DB schema。 |
 | 2.30 | 2026-11-11 | 依 Astryx 規範建立共用意圖設計系統 `src/components/ui/ds/` 與表面階層語意色，並全面重整現行工作區與閱讀器排版與精簡文案；未改路由、守衛、導向、API、GraphQL payload 或 DB schema。 |
 | 2.29 | 2026-11-11 | 初始設定第一步點選「本機資料夾」直接開啟資料夾選擇器（移除「選擇前端專案」按鈕與開啟中橫幅），第三步知識整理改採單一頂端橫幅 toast 並於完成後消失；未改路由、守衛、導向、API、GraphQL payload 或 DB schema。 |
@@ -80,6 +82,10 @@ SetupWizard 依序選擇來源、腳本位置與匯入知識；WorkspaceDialog �
 SourceWorkspace 的「補齊缺少腳本」分批處理全部分析項目，既有檔案保留，完成後刷新檔案狀態；不受搜尋篩選影響。標籤為已建立腳本／尚未建立，與執行結果分開。api-catalog token 改四欄，表頭與列採一致 checkbox gutter、詳情固定右欄。UI gate 驗證混合狀態對齊與全清單補齊不覆寫。
 
 ## 功能與測試案例入口
+
+功能詳情在說明後、對應測試之前新增 `FeatureSequence`，從 feature.frontend.sequence 閱讀前端互動，不依賴案例；最末層功能第一次點擊直接開詳情。功能與案例共用 `SequenceDiagram` 幾何閱讀元件，功能不顯示執行狀態。舊分析無資料提示頁首「AI 分析功能」，空陣列提示證據不足；來源 hash 變更時保留舊圖並提示重新分析。下次 AI 分析會為舊 baseline 完整升級一次，再恢復增量快取。驗證沿用 `verify-frontend-overview-ui.mjs`，新增零案例圖、條件、來源預覽及來源過期保護。
+
+案例詳情由 `CaseSequence` 先呈現步驟與預期，再按需展開有 interaction 來源的序列圖；未提供互動不猜測。序列圖編號對應步驟，來源連到既有程式碼預覽。最新報告只在版本相符、無來源問題、唯一腳本與唯一同名步驟時顯示狀態；未對應不代表未執行，不將整案通過套到每一步。沿用 Astryx 的漸進揭露指引與專案 ds／Tailwind，無新增套件或樣式表。契約與限制見 [測試關聯](../../docs/test-traceability.md)，瀏覽器 gate 為 `DS_REQUIRE_BROWSER=1 node scripts/verify-case-sequence-ui.mjs`。
 
 WorkspaceApp 新增 view=catalog 與 view=knowledge，重新整理保留入口。CatalogWorkspace／CaseEditor／FeatureMap 分別顯示案例、編修意圖與同資料的關聯圖；SourceWorkspace 不變。知識頁改為「專案知識」，新增分類及適用功能、內容編修。案例與知識支援 loading／錯誤／選取／空狀態及版本競爭錯誤，純文字導航與原生 details，無 native select、裝飾動畫或執行控制。完整資料契約見 [測試關聯](../../docs/test-traceability.md)。UI gate：DS_REQUIRE_BROWSER=1 node scripts/verify-catalog-ui.mjs。
 

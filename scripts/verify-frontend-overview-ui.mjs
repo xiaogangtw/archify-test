@@ -51,6 +51,7 @@ try {
  const evidence=JSON.parse(await readFile(join(f.project,'analysis/feature-evidence.json'),'utf8'));
  const sources=[{path:'src/pages/CardPage.tsx',line:1}];
  const proposal={schemaVersion:1,sourceHash:evidence.sourceHash,catalogRevision:evidence.catalogRevision,generatedAt:new Date().toISOString(),features:[{id:'F-CARD',name:'名片管理',description:'頁面證據的功能分組',evidence:'code',sources,pageIds:evidence.pages.map(p=>p.id),apiIds:evidence.apis.map(a=>a.id),questions:['名片權限需確認']}],relations:[],unassignedPageIds:[],unassignedApiIds:[],notes:[]};
+ proposal.features[0].sequence=[{action:'開啟名片頁並請求資料',from:'前端',to:'名片 API',condition:'進入名片頁時',source:sources[0]},{action:'處理資料並顯示頁面',from:'名片 API',to:'前端',condition:'收到成功回應時',source:sources[0]}];
  await writeFile(join(f.project,'analysis/feature-map.proposal.json'),JSON.stringify(proposal));
  await page.getByRole('button',{name:'重新讀取',exact:true}).click();
  await page.getByRole('button',{name:'載入 AI 結果',exact:true}).click();
@@ -58,6 +59,16 @@ try {
  assert.equal(await page.getByRole('button',{name:'專案：前端功能總覽',exact:true}).count(),1);
  await page.getByRole('button',{name:'功能：名片管理',exact:true}).click();
  await page.getByRole('button',{name:'返回總覽',exact:true}).waitFor();
+ assert.equal((await f.workspace.catalog()).catalog.cases.length,0,'feature sequence exists before any cases');
+ await page.getByRole('button',{name:'功能：名片管理',exact:true}).click();
+ const sequence=page.getByRole('region',{name:'功能序列圖',exact:true});
+ await sequence.locator('summary').focus();await page.keyboard.press('Enter');
+ await sequence.getByRole('img',{name:'名片管理的前端序列圖',exact:true}).waitFor();
+ await sequence.getByText('條件：收到成功回應時',{exact:true}).waitFor();
+ await sequence.getByRole('button',{name:'1. src/pages/CardPage.tsx:1',exact:true}).click();
+ await page.getByRole('region',{name:'程式碼預覽'}).locator('pre').filter({hasText:'CardPage'}).waitFor();
+ await axe();
+ if(process.env.ARCHIFY_GATE_REVIEW==='1')console.log('REVIEW_FEATURE_SEQUENCE_IMAGE:'+(await page.getByRole('region',{name:'節點詳情',exact:true}).screenshot({type:'jpeg',quality:65})).toString('base64'));
  await page.getByRole('button',{name:'前端頁面：名片',exact:true}).click();
  await page.getByRole('region',{name:'程式碼預覽'}).locator('pre').filter({hasText:'CardPage'}).waitFor();
  await page.getByRole('button',{name:'關閉詳情',exact:true}).click();
@@ -70,6 +81,11 @@ try {
  await axe();
  for(const width of [390,1024,1280,1440,1920]){await page.setViewportSize({width,height:1000});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);}
  await page.setViewportSize({width:1440,height:1000});
+ await writeFile(join(f.source,'src/pages/CardPage.tsx'),'export default function CardPage(){return null;}');
+ await Promise.all([page.waitForResponse(response=>response.url().endsWith('/local-api/catalog')),page.getByRole('button',{name:'重新讀取',exact:true}).click()]);
+ await page.getByRole('button',{name:'重新讀取',exact:true}).waitFor();
+ await page.getByRole('button',{name:'功能：名片管理',exact:true}).click();
+ await sequence.getByText('來源已變更或缺少版本基準；以下為上次分析，請重新分析。',{exact:true}).waitFor();
  if(process.env.ARCHIFY_GATE_REVIEW==='1')console.log('REVIEW_IMAGE:'+(await page.screenshot({type:'jpeg',quality:60})).toString('base64'));
  assert.deepEqual(errors,[]);
  console.log('PASS frontend overview UI: prepare actual evidence, validate/apply proposal, feature without tests, all-feature graph, page source preview, product/test separation, axe/contrast and responsive overflow. No model or product requests.');

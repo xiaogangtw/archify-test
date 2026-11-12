@@ -25,6 +25,8 @@ import {
   Surface,
 } from '../../components/ui/ds';
 import type { Tone } from '../../components/ui/ds';
+import { CaseSequence } from './CaseSequence';
+import { FeatureSequence } from './FeatureSequence';
 
 const covDotTone: Record<CoverageLevel, Tone> = {
   full: 'success',
@@ -92,7 +94,7 @@ export function MapDetails({
   const hasSourceIssue = !!row?.issues.some(issue => issue.type === 'source');
 
   return (
-    <Surface className="self-start" aria-label="節點詳情">
+    <Surface className="min-w-0 self-start" aria-label="節點詳情">
       <header className="mb-4 flex items-start justify-between gap-3 border-b border-line pb-4">
         <div className="min-w-0 flex-1 space-y-1.5">
           {onFeature && targetFeatureId && node.kind !== 'project' && (
@@ -139,6 +141,9 @@ export function MapDetails({
           <>
             {feature?.frontend?.description && (
               <p className="text-muted">{feature.frontend.description}</p>
+            )}
+            {node.kind === 'feature' && feature && (
+              <FeatureSequence key={feature.id} feature={feature} busy={busy} onCode={onCode} />
             )}
             {node.kind === 'feature' && (
               <div className="space-y-3">
@@ -350,6 +355,7 @@ export function MapDetails({
 
               {node.kind === 'case' && (
                 <div className="space-y-4">
+                  <CaseSequence key={row.id} row={row} busy={busy} onCode={onCode} />
                   {row.factor && (
                     <p className="text-muted">{`測試因子：${factorLabels[row.factor]}`}</p>
                   )}

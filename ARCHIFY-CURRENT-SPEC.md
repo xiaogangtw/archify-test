@@ -1,15 +1,21 @@
-文件版本：1.2
+文件版本：1.5
 
-最後更新：2026-11-10
+最後更新：2026-11-12
 
 ## 修訂紀錄
 
 | 版本 | 日期 | 說明 |
 | --- | --- | --- |
+| 1.5 | 2026-11-12 | 序列圖前移至功能詳情，AI 分析依前端證據產生互動與條件，無案例也可閱讀；舊分析下次執行完整升級，來源異動標示舊圖。功能 metadata 新增選填 sequence，未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
+| 1.4 | 2026-11-12 | 案例詳情加入規劃步驟與按需序列圖，版本相符且唯一同名時呈現逐步結果；steps 新增選填 interaction、catalog latest 新增 steps 摘要。未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 1.3 | 2026-11-10 | 報告入口改橫幅清單，每筆下載或另開原版HTML；原版面僅移除關鍵畫面分組，保留正常流程及證據。未改路由、產品API或DB。 |
 | 1.0 | 2026-11-10 | 補報告規格metadata；單次執行改單檔HTML並解除歷史截斷，local-api/report相容新HTML。未改路由、守衛、導向、產品API、GraphQL payload或DB schema。 |
 
 ## 本機分析框架與報告閱讀器
+
+功能詳情先提供前端來源序列圖，再規劃案例，不以案例存在作顯示條件。features 提案選填 sequence（網站 AI schema 要求陣列，無證據填 []），驗證來源及行號後保存 frontend.sequence；每項 action／from／to／condition／source 表達一條可確認路徑，不推測後端或靜態 API 先後。來源異動保留上次圖並提示重分析；舊 baseline 下一次 AI 分析完整升級一次。最末層功能第一次點擊直接開詳情，沿用 view=catalog；案例執行結果保持獨立，不由功能圖猜測配對。
+
+功能地圖案例詳情先呈現規劃步驟及預期，再展開序列圖與來源；無互動證據不繪圖，前端靜態 API 關聯不推定呼叫順序。catalog schemaVersion 1 的 steps 選填 interaction（from／to／source.path／source.line），latest 回應僅增加 name／status 步驟摘要。只有版本相符、無來源問題、唯一腳本及規劃／報告唯一同名時呈現逐步狀態，其餘標示未對應；不推定後續未執行或後端根因。原報告入口保留，失敗敘述明示後續業務結果尚未驗證。詳見 docs/test-traceability.md；沿用固定深色與現有 ds，無新增執行入口。
 
 測試報告分 API 與畫面兩類，畫面標示 web／android，分別固定寫入獨立專案 reportDir/api、reportDir/ui，日期時間命名並輸出單檔HTML（內嵌schemaVersion 1及圖片），同runId持續原子更新同檔。schemaVersion 1 新增 testType、screenshotsEnabled、target、dataMode、screenshots，保留舊根目錄報告。config/report.json 的截圖在新專案預設開啟，既有明確關閉保留，網站可保存下次執行選項；僅新版畫面 fixtures 在開啟時擷取 PNG，API 不留圖。一般畫面使用本機前端 WEB_BASE_URL 與 LIFF mock，並對實際 BFF 資料及 DOM 分別斷言；原生推播另使用 Appium。網站可啟動既有本機 AVD／Appium及選裝置，不提供產品腳本執行，不恢復 VM／舊 Control API。依使用者補充，本輪只準備框架與環境，不開啟 LINE、不擷取實際手機畫面、不發送推播。完整契約見 docs/ui-testing-reports.md。
 
@@ -56,7 +62,7 @@ custom reporter 將 test.step 實際結果或宣告的流程轉成 schemaVersion
 
 文件版本：1.69
 
-最後更新：2026-11-11
+最後更新：2026-11-12
 
 > 閱讀定位：本文件保留既有日期式功能沿革；部分章節含明示取代關係，請與相關專題文件及程式交叉核對。歷史模擬與驗證紀錄不代表目前 VM 或真實系統已部署驗收。文件分類見 [文件總索引](docs/README.md)。
 

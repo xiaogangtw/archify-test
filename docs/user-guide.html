@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Archify Test｜看圖寫第一個測試</title>
+<style>
+:root{color-scheme:dark;font:14px/1.65 Inter,"Noto Sans TC","Microsoft JhengHei",sans-serif;color:#e6edf3;background:#0d1117;--canvas:#0d1117;--surface:#161b22;--line:#30363d;--muted:#9da7b1;--green:#7ee787;--yellow:#e3b341}*{box-sizing:border-box}body{margin:0}button,a,input{font:inherit}button{cursor:pointer}button:disabled{cursor:default;opacity:.45}button:focus-visible,a:focus-visible{outline:2px solid #e6edf3;outline-offset:3px}button{min-height:32px;border:1px solid var(--line);border-radius:8px;padding:6px 14px;background:#21262d;color:#e6edf3}a{color:#b6d7ff}h1{font-size:32px;line-height:1.4;margin:0}h2{font-size:24px;line-height:1.4;margin:0 0 8px}h3{font-size:16px;margin:0 0 12px}p{margin:0 0 12px}.muted{color:var(--muted)}.shell{max-width:1440px;padding:32px;margin:auto}.mast{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:28px}.mast p{margin-top:8px;margin-bottom:0}.steps{display:flex;flex-wrap:wrap;gap:8px;border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:28px}.steps button{background:transparent;border-color:transparent;color:var(--muted)}.steps button[aria-selected=true]{background:#30363d;color:#fff;border-color:#6e7681}.number{display:inline-block;margin-right:8px;color:inherit}.panel[hidden]{display:none}.lead{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px}.lead p{margin:0}.scene{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}.scene-bar{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);color:var(--muted)}.mock-label{color:var(--yellow);font-weight:500}.scene img{width:100%;display:block}.split{display:grid;grid-template-columns:minmax(280px,1fr) minmax(0,1.7fr);gap:24px;align-items:start}.say{background:#161b22;border:1px solid var(--line);border-radius:12px;padding:20px}.say .label{color:var(--muted);margin-bottom:12px}.prompt{white-space:pre-wrap;font:14px/1.9 inherit;margin:0 0 20px;overflow-wrap:anywhere}.copy{background:#e6edf3;color:#0d1117;border-color:#e6edf3;font-weight:500}.copy-status{min-height:24px;margin-top:10px;color:var(--green)}.mini-app{display:grid;grid-template-columns:140px minmax(0,1fr);min-height:380px}.mini-nav{padding:18px 12px;background:#090d12;border-right:1px solid var(--line)}.mini-nav strong{display:block;margin-bottom:22px}.mini-nav span{display:block;color:var(--muted);padding:8px;border-radius:8px;margin-bottom:6px}.mini-nav .chosen{background:#21262d;color:#e6edf3}.mini-main{min-width:0;padding:22px}.breadcrumbs{font-size:14px;color:var(--muted);margin-bottom:18px}.mini-title{font-size:20px;font-weight:500;margin-bottom:18px}.tabrow{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}.tabrow span,.tabrow button{padding:6px 12px;border-radius:8px}.tabrow .chosen,.tabrow button[aria-pressed=true]{background:#30363d;color:#e6edf3}.table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;text-align:left;font-size:14px}th{color:var(--muted);font-weight:500;background:#0d1117}th,td{padding:12px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}td small{display:block;color:var(--muted);font-size:14px;margin-top:4px}.tag{display:inline-block;border:1px solid var(--line);border-radius:8px;padding:2px 8px}.success{color:var(--green)}.warning{color:var(--yellow)}.failure{color:#ff7b72}.detail{padding:14px 12px;color:var(--muted);display:flex;gap:24px;flex-wrap:wrap}.editor{display:grid;grid-template-columns:170px minmax(0,1fr);min-height:370px}.files{padding:20px 12px;background:#0d1117;border-right:1px solid var(--line);color:var(--muted)}.files p{overflow-wrap:anywhere}.files .active{color:#e6edf3;background:#21262d;padding:8px;border-radius:8px}.code{margin:0;padding:20px;white-space:pre-wrap;font:14px/1.85 Consolas,monospace;overflow-wrap:anywhere}.kw{color:#d2a8ff}.str{color:#a5d6ff}.comment{color:var(--muted)}.terminal{padding:24px;min-height:280px;background:#090d12;white-space:pre-wrap;font:14px/2 Consolas,monospace;overflow-wrap:anywhere}.flow-strip{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:20px}.flow-strip span{border:1px solid var(--line);border-radius:8px;padding:8px 12px}.flow-strip b{color:var(--muted);font-weight:400}.note{margin:14px 0 0;color:var(--muted)}.bottom{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:28px;padding-top:20px;border-top:1px solid var(--line)}.report-step{padding:14px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px}.mock-screen{margin-top:20px;border:1px solid var(--line);border-radius:12px;padding:24px;background:#0d1117;text-align:center}.mock-screen h3{font-size:24px}.mock-screen p{color:var(--muted)}.annotations{display:flex;flex-wrap:wrap;gap:12px;margin-top:16px}.annotations div{padding:12px 16px;border:1px solid var(--line);border-radius:8px;flex:1;min-width:180px}.annotations b{display:block;font-weight:500;margin-bottom:4px}details{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}summary{cursor:pointer;min-height:32px}textarea{width:100%;min-height:120px;background:#0d1117;color:#e6edf3;font:14px/1.7 Consolas,monospace;border:1px solid #6e7681;border-radius:8px;padding:12px}.empty-shot{padding:50px;text-align:center;color:var(--muted)}.footer{color:var(--muted);margin-top:24px}.fallback{display:none}button:hover{border-color:#9da7b1}button:active{background:#30363d}.copy:active{background:#c9d1d9}
+@media(max-width:1000px){.split{grid-template-columns:1fr}.mini-app{grid-template-columns:115px minmax(0,1fr)}.editor{grid-template-columns:140px minmax(0,1fr)}}@media(max-width:600px){.shell{padding:20px 14px}.mast{align-items:start;flex-direction:column}h1{font-size:24px}.mini-nav,.files{display:none}.mini-app,.editor{grid-template-columns:1fr}.mini-main{padding:14px}.steps{gap:2px}.steps button{padding:6px 8px}.lead{align-items:start;flex-direction:column}.bottom{flex-wrap:wrap}.code{padding:14px}}@media print{.panel[hidden]{display:block}.steps,.bottom,.copy,.copy-status{display:none}.panel{break-before:page}.split{display:block}.say{margin-bottom:20px}.shell{padding:0}.footer{display:none}details:not([open]) .code{display:block}}
+</style>
+</head>
+<body>
+<main class="shell">
+  <header class="mast"><div><h1>看圖寫第一個測試</h1><p class="muted">照這五步做：先寫案例，再讓 AI 寫腳本，最後回網站看。</p></div><span class="tag">Archify Test 操作教學</span></header>
+  <nav class="steps" role="tablist" aria-label="教學步驟">
+    <button role="tab" id="tab-1" aria-controls="step-1" aria-selected="true">1　準備資料</button>
+    <button role="tab" id="tab-2" aria-controls="step-2" aria-selected="false" tabindex="-1">2　請 AI 寫案例</button>
+    <button role="tab" id="tab-3" aria-controls="step-3" aria-selected="false" tabindex="-1">3　請 AI 寫腳本</button>
+    <button role="tab" id="tab-4" aria-controls="step-4" aria-selected="false" tabindex="-1">4　執行測試</button>
+    <button role="tab" id="tab-5" aria-controls="step-5" aria-selected="false" tabindex="-1">5　回網站看</button>
+  </nav>
+
+  <section class="panel" id="step-1" role="tabpanel" aria-labelledby="tab-1">
+    <div class="lead"><div><h2>先讓 AI 有東西可讀</h2><p class="muted">在網站完成設定、上傳需求，再分析功能。</p></div><a href="http://localhost:5173/" target="_blank" rel="noreferrer">開啟 Archify Test</a></div>
+    <div class="scene"><div class="scene-bar"><span>網站實際畫面：功能地圖</span><span>找右上「AI 分析功能」</span></div><!-- EMBED_MAP --></div>
+    <div class="annotations"><div><b>先設定</b><span class="muted">左下工作區設定，連接前端與測試專案。</span></div><div><b>再上傳</b><span class="muted">專案知識 → 新增知識，放 PRD／業務規則。</span></div><div><b>分析功能</b><span class="muted">先掃描前端，再按 AI 分析功能。</span></div></div>
+    <p class="note">接下來請在自己的 AI 工具開啟「獨立測試專案」，例如 aiwow_test。</p>
+  </section>
+
+  <section class="panel" id="step-2" role="tabpanel" aria-labelledby="tab-2" hidden>
+    <div class="lead"><div><h2>跟 AI 說：先幫我寫測試案例</h2><p class="muted">先講「要驗什麼」，寫完在網站看步驟。</p></div></div>
+    <div class="split">
+      <div class="say"><p class="label">在自己的 AI 工具貼上</p><pre class="prompt" id="prompt-plan">請先讀 AGENTS.md、knowledge/README.md，
+使用 skills/plan-test-cases/SKILL.md。
+
+我要測「登入後看到會員首頁」。
+先幫我規劃成功情境及適用的失敗情境，
+寫入 test-cases/catalog.json，連到既有功能。
+每步寫清楚操作、資料和預期。
+
+缺帳號、權限或業務規則請一次問我。
+這次先寫案例，不執行產品。</pre><button class="copy" data-copy="prompt-plan">複製給 AI</button><p class="copy-status" aria-live="polite"></p><p class="muted">把功能名稱換成你要測的功能。</p></div>
+      <div class="scene"><div class="scene-bar"><span>寫完後 → 測試流程 → 重新讀取</span><span class="mock-label">MOCK 示意</span></div>
+        <div class="mini-app"><aside class="mini-nav"><strong>Archify Test</strong><span>功能地圖</span><span class="chosen">測試流程</span><span>測試腳本</span><span>測試報告</span></aside><div class="mini-main"><div class="mini-title">測試流程</div><div class="tabrow"><span>API 流程</span><span class="chosen">畫面流程</span></div><h3>登入成功後顯示會員首頁</h3><div class="table-wrap"><table><thead><tr><th>測試步驟</th><th>使用資料</th><th>預期結果</th></tr></thead><tbody><tr><td>1. 開啟登入頁</td><td>測試環境</td><td>看見登入入口</td></tr><tr><td>2. 完成登入</td><td>經授權的測試帳號</td><td>登入回應成功</td></tr><tr><td>3. 查看會員首頁</td><td>同一帳號</td><td>顯示會員名稱</td></tr></tbody></table></div><div class="detail"><span>前置：未登入</span><span>清理：登出並釋放瀏覽器</span></div><span class="tag">只有案例計畫，還沒有執行</span></div></div>
+      </div>
+    </div><p class="note">看不到案例？按重新讀取；再確認 AI 改的是目前綁定專案的 catalog.json。</p>
+  </section>
+
+  <section class="panel" id="step-3" role="tabpanel" aria-labelledby="tab-3" hidden>
+    <div class="lead"><div><h2>再跟 AI 說：照這個案例寫腳本</h2><p class="muted">指定案例名稱，讓 AI 自己讀前端找按鈕與 API。</p></div></div>
+    <div class="split">
+      <div class="say"><p class="label">案例內容看過後，再貼這段</p><pre class="prompt" id="prompt-code">請使用 skills/implement-tests/SKILL.md，
+實作剛才「登入後看到會員首頁」的案例。
+
+先讀案例、知識和實際前端來源，
+確認入口、按鈕、登入流程及預期結果。
+用 support/web-test.js 的 fixture 寫畫面測試，
+每個案例步驟對應唯一同名 test.step。
+把腳本連回案例，先做型別與證據檢查。
+
+缺資料先問我；先不要操作真實產品。</pre><button class="copy" data-copy="prompt-code">複製給 AI</button><p class="copy-status" aria-live="polite"></p><p class="muted">API 測試也用這個說法，把「畫面測試」換成「API 測試」。</p></div>
+      <div class="scene"><div class="scene-bar"><span>AI 會在測試專案寫檔案</span><span class="mock-label">MOCK 示意</span></div><div class="editor"><aside class="files"><p>aiwow_test</p><p>test-cases/</p><p>　catalog.json</p><p>tests/ui/</p><p class="active">　login.spec.ts</p></aside><pre class="code"><span class="comment">// 看懂大致結構就好，實際程式交給 AI</span>
+<span class="kw">test</span>(<span class="str">'登入成功後顯示會員首頁'</span>, ...)
+
+  <span class="kw">test.step</span>(<span class="str">'開啟登入頁'</span>, ...)
+    → 開啟真實前端的登入入口
+
+  <span class="kw">test.step</span>(<span class="str">'完成登入'</span>, ...)
+    → 使用已確認的測試帳號／登入方式
+
+  <span class="kw">test.step</span>(<span class="str">'查看會員首頁'</span>, ...)
+    → expect：看見正確會員名稱
+
+<span class="comment">案例 ID、步驟、腳本彼此對應。</span></pre></div></div>
+    </div>
+    <details><summary>想看真的腳本長怎樣？展開合成頁面的 mock 範例</summary><p class="note">這份獨立示範用假頁面與假會員，不是上方案例的真實登入實作，也不會送產品請求。</p><pre class="code" id="script-demo">import { test, expect } from '../../support/web-test.js';
+
+test('模擬登入後顯示會員首頁', async ({ page }) =&gt; {
+  await test.step('開啟模擬登入頁', async () =&gt; {
+    await page.setContent(`
+      &lt;main&gt;
+        &lt;h1&gt;模擬登入&lt;/h1&gt;
+        &lt;button onclick="document.querySelector('main').innerHTML=
+          '&amp;lt;h1&amp;gt;會員首頁&amp;lt;/h1&amp;gt;&amp;lt;p&amp;gt;測試會員 小明&amp;lt;/p&amp;gt;'"&gt;
+          模擬登入
+        &lt;/button&gt;
+      &lt;/main&gt;`);
+    await expect(page.getByRole('heading', { name: '模擬登入' })).toBeVisible();
+  });
+  await test.step('點擊模擬登入', async () =&gt; {
+    await page.getByRole('button', { name: '模擬登入' }).click();
+  });
+  await test.step('核對會員首頁', async () =&gt; {
+    await expect(page.getByRole('heading', { name: '會員首頁' })).toBeVisible();
+    await expect(page.getByText('測試會員 小明')).toBeVisible();
+  });
+});</pre><button data-copy="script-demo">複製 mock 腳本</button><span class="copy-status" aria-live="polite"></span></details>
+  </section>
+
+  <section class="panel" id="step-4" role="tabpanel" aria-labelledby="tab-4" hidden>
+    <div class="lead"><div><h2>寫完，才執行測試</h2><p class="muted">在獨立測試專案的終端執行；網站沒有播放測試按鈕。</p></div></div>
+    <div class="split"><div class="say"><p class="label">也可以這樣跟 AI 說</p><pre class="prompt" id="prompt-run">先檢查剛才的案例與腳本。
+確認不是空白草稿，沒有只移除 skip。
+請先做型別與畫面證據檢查，
+列出測試會使用的環境、帳號與清理方式。
+
+我核對後，再指定這次可以執行的範圍。</pre><button class="copy" data-copy="prompt-run">複製給 AI</button><p class="copy-status" aria-live="polite"></p><p class="muted">新專案先 npm ci。命令以你的 package.json 為準。</p></div>
+      <div class="scene"><div class="scene-bar"><span>終端：先檢查，再跑指定檔案</span><span class="mock-label">MOCK 結果，未實際執行</span></div><pre class="terminal"><span class="muted"># 確認目前位於 aiwow_test</span>
+$ npm run check:types
+<span class="success">型別檢查完成</span>
+$ npm run check:ui-evidence
+<span class="success">畫面 fixture 檢查完成</span>
+
+<span class="muted"># 核對環境與執行範圍後，再執行</span>
+$ npm run test:ui -- tests/ui/login.spec.ts
+<span class="success">1 passed</span>
+報告 → reports/ui/日期時間.html</pre></div>
+    </div><div class="flow-strip"><span>先檢查</span><b>→</b><span>核對環境與資料</span><b>→</b><span>執行指定案例</span><b>→</b><span>產生 HTML 報告</span></div><p class="note">API 測試改用 npm run test:api。skipped／略過不算通過。</p>
+  </section>
+
+  <section class="panel" id="step-5" role="tabpanel" aria-labelledby="tab-5" hidden>
+    <div class="lead"><div><h2>回網站看這三個地方</h2><p class="muted">都先按重新讀取／重新整理。</p></div><span class="mock-label">以下全部是完成樣式示意</span></div>
+    <div class="tabrow" role="group" aria-label="完成樣式"><button data-view="plans" aria-pressed="true">測試流程：看計畫</button><button data-view="tracking" aria-pressed="false">測試清單：看狀態</button><button data-view="report" aria-pressed="false">測試報告：看證據</button></div>
+    <div class="scene"><div class="scene-bar"><span id="preview-title">測試流程 → 畫面流程</span><span class="mock-label">MOCK 示意，非目前專案結果</span></div><div class="mini-main">
+      <div id="preview-plans"><div class="mini-title">登入成功後顯示會員首頁</div><div class="table-wrap"><table><thead><tr><th>步驟</th><th>資料</th><th>預期</th></tr></thead><tbody><tr><td>開啟登入頁</td><td>測試環境</td><td>登入入口可見</td></tr><tr><td>完成登入</td><td>授權帳號</td><td>登入成功</td></tr><tr><td>查看會員首頁</td><td>同一會員</td><td>顯示會員名稱</td></tr></tbody></table></div><p class="note">這裡回答「原本打算測什麼」。</p></div>
+      <div id="preview-tracking" hidden><div class="mini-title">功能地圖 → 測試清單</div><div class="table-wrap"><table><thead><tr><th>功能／案例</th><th>案例品質</th><th>腳本</th><th>最近結果</th><th>版本</th></tr></thead><tbody><tr><td>登入成功後顯示會員首頁</td><td>無提醒</td><td>已連結</td><td><span class="tag success">上次通過</span></td><td>相符</td></tr><tr><td>登入取消後留在登入頁</td><td><span class="warning">待補預期</span></td><td>未連結</td><td>未執行</td><td>無報告</td></tr></tbody></table></div><p class="note">這裡回答「哪些還沒寫、哪些測過、哪些要重測」。無提醒不保證規則完整。</p></div>
+      <div id="preview-report" hidden><div class="mini-title">登入成功後顯示會員首頁 <span class="tag success">通過 · 示意</span></div><div class="report-step"><span>1. 開啟登入頁</span><span class="success">完成</span></div><div class="report-step"><span>2. 完成登入</span><span class="success">完成</span></div><div class="report-step"><span>3. 查看會員首頁</span><span class="success">斷言通過</span></div><div class="mock-screen"><span class="tag">模擬操作證據</span><h3>會員首頁</h3><p>測試會員 小明</p><span class="tag success">已登入</span></div><p class="note">這裡回答「這次實際做了什麼」。真實報告以當次保存的結果及截圖為準。</p></div>
+    </div></div>
+    <details><summary>第一次使用時，網站可能還是空的</summary><div class="scene"><div class="scene-bar"><span>實際網站：尚未建立案例時</span></div><!-- EMBED_EMPTY --></div><p class="note">有腳本但沒案例：請 AI 補 catalog 關聯。沒有報告：先確認真的執行過，再按重新整理。</p></details>
+    <details><summary>不知道怎麼請 AI 查失敗？複製這段</summary><pre class="prompt" id="prompt-fail">請讀剛才這次的 HTML 報告與對應案例／腳本。
+先說明失敗在哪一步、已完成什麼、後續哪些沒驗證。
+對照前端來源、操作證據及安全診斷找原因。
+原因不確定請列出缺少的證據，不要猜。
+不要放寬斷言、改預期或重送寫入來讓它通過。
+先提出修正，再說明需要重跑的範圍。</pre><button class="copy" data-copy="prompt-fail">複製給 AI</button><p class="copy-status" aria-live="polite"></p></details>
+  </section>
+  <footer class="bottom"><button id="prev" disabled>上一步</button><span id="progress" class="muted" role="status">1 / 5</span><button id="next" class="copy">下一步：請 AI 寫案例</button></footer>
+  <p class="footer">範例名稱與結果皆為 mock。實際頁面截圖只內嵌本頁，沒有獨立圖片檔。</p>
+</main>
+<script>
+const tabs=[...document.querySelectorAll('[role="tab"]')];
+const panels=[...document.querySelectorAll('.panel')];
+let current=0;
+function showStep(index,focus=false){current=index;tabs.forEach((tab,i)=>{tab.setAttribute('aria-selected',String(i===index));tab.tabIndex=i===index?0:-1;panels[i].hidden=i!==index;});document.querySelector('#prev').disabled=index===0;document.querySelector('#next').disabled=index===4;document.querySelector('#next').textContent=index===4?'教學結束':'下一步：'+['','請 AI 寫案例','請 AI 寫腳本','執行測試','回網站看'][index+1];document.querySelector('#progress').textContent=`${index+1} / 5`;if(focus)tabs[index].focus();}
+tabs.forEach((tab,i)=>{tab.addEventListener('click',()=>showStep(i));tab.addEventListener('keydown',event=>{let next;if(event.key==='ArrowRight')next=(i+1)%5;if(event.key==='ArrowLeft')next=(i+4)%5;if(event.key==='Home')next=0;if(event.key==='End')next=4;if(next!==undefined){event.preventDefault();showStep(next,true);}});});
+document.querySelector('#prev').addEventListener('click',()=>showStep(current-1,true));document.querySelector('#next').addEventListener('click',()=>showStep(current+1,true));
+document.querySelectorAll('[data-copy]').forEach(button=>button.addEventListener('click',async()=>{const text=document.getElementById(button.dataset.copy).textContent;const status=button.parentElement.querySelector('.copy-status');try{await navigator.clipboard.writeText(text);if(status)status.textContent='已複製，貼到你的 AI 對話。';}catch{if(status)status.textContent='請選取上方文字，手動複製。';}}));
+document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>{const view=button.dataset.view;document.querySelectorAll('[data-view]').forEach(item=>item.setAttribute('aria-pressed',String(item===button)));['plans','tracking','report'].forEach(id=>document.getElementById('preview-'+id).hidden=id!==view);document.getElementById('preview-title').textContent={plans:'測試流程 → 畫面流程',tracking:'功能地圖 → 測試清單',report:'測試報告 → 畫面測試 → 開啟'}[view];}));
+</script>
+</body>
+</html>

@@ -1,5 +1,7 @@
 # 專案文件索引
 
+- [看圖寫第一個測試](user-guide.html)：少文字的五步操作、可複製 AI 任務及 mock 案例／腳本／報告；另見 [文字索引](user-guide.md)。
+
 - [API、網頁與 Android 報告](ui-testing-reports.md)：報告分類、截圖設定、本機前端與推播環境。
 
 - [網站 AI 分析](website-ai-analysis.md)：功能圖按鈕、MD／HTML 語意去重更新與還原。

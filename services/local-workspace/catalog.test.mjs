@@ -41,6 +41,8 @@ test('案例／知識／來源關聯不執行腳本，版本依賴更新不沿�
     assert.equal(view.cases[0].declaredSteps[0], '讀取名片');
     assert.ok(view.cases[0].apis.some(api => api.name === 'GetCard' && api.evidence.length));
     assert.equal(view.cases[0].freshness, 'never');
+    assert.ok(view.cases[0].qualityWarnings.some(warning => warning.code === 'MISSING_CLEANUP'));
+    assert.equal(view.catalog.cases[0].qualityWarnings, undefined, '品質提醒只屬讀取結果，不改寫案例資料');
     assert.ok(view.cases[0].issues.some(issue => issue.text === '誰能讀取？'));
     const evidence = scriptEvidence(f.project, 'tests/flows/Card.spec.ts');
     assert.equal(evidence.complete, true, JSON.stringify(evidence.issues));

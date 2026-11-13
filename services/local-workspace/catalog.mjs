@@ -7,6 +7,7 @@ import { scriptEvidence, intentHash } from '../../test-project/support/script-ev
 import { knowledgeStore } from './knowledge.mjs';
 import { operationStems } from './naming.mjs';
 import { planState, planId } from '../../test-project/support/case-plan.mjs';
+import { caseQuality } from '../../test-project/support/case-quality.mjs';
 import { validFeatureSequence } from '../../test-project/support/feature-sequence.mjs';
 const digest = text => createHash('sha256').update(text).digest('hex');
 const id = value => typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_-]{0,79}$/.test(value);
@@ -207,7 +208,8 @@ export function catalogStore(config) {
         const freshness = !latest ? 'never' : !script || !latest.evidence?.complete || !script.complete || !latest.caseEvidence?.complete ? 'unknown' : latest.evidence.hash === script.hash && latest.caseEvidence.intentHash === intentHash(row) && latest.caseEvidence.knowledgeHash === knowledgeHash(row, knowledge.documents) ? 'current' : 'changed';
         const review = await planState(config.projectRoot, value.catalog, row);
         if (issues.some(issue => issue.type === 'source')) { review.problems.push('前端來源需要重新核對'); review.status = review.confirmedAt ? 'changed' : 'incomplete'; }
-        return { ...row, review, issues, script: script?.path || row.script || '', scripts: matches.map(item => item.path), declaredSteps: script?.steps || [], apis: linkedApis, latest: latest ? { report: latest.report, createdAt: latest.createdAt, status: latest.status, steps: latest.steps } : null, freshness };
+        const qualityWarnings = caseQuality(row, value.catalog.features.find(feature => feature.id === row.featureId));
+        return { ...row, review, issues, qualityWarnings, script: script?.path || row.script || '', scripts: matches.map(item => item.path), declaredSteps: script?.steps || [], apis: linkedApis, latest: latest ? { report: latest.report, createdAt: latest.createdAt, status: latest.status, steps: latest.steps } : null, freshness };
       }));
       const linked = new Set(cases.flatMap(row => row.scripts));
       return { ...value, cases, scripts: allScripts.map(script => ({ path: script.path, caseIds: script.caseIds })), unlinkedScripts: allScripts.filter(script => !linked.has(script.path)).map(script => script.path), knowledge: knowledge.documents, warnings, analysisAvailable: !!analysis };

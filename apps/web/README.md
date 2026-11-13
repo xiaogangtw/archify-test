@@ -1,8 +1,8 @@
 # Archify 前端
 
-文件版本：2.35
+文件版本：2.36
 
-最後更新：2026-11-12
+最後更新：2026-11-13
 
 測試報告分 API 與畫面兩類，畫面標示 web／android，分別固定寫入獨立專案 reportDir/api、reportDir/ui，日期時間命名並輸出 JSON／HTML／TXT。schemaVersion 1 新增 testType、screenshotsEnabled、target、dataMode、screenshots，保留舊根目錄報告。config/report.json 的截圖在新專案預設開啟，既有明確關閉保留，網站可保存下次執行選項；僅新版畫面 fixtures 在開啟時擷取 PNG，API 不留圖。一般畫面使用本機前端 WEB_BASE_URL 與 LIFF mock，並對實際 BFF 資料及 DOM 分別斷言；原生推播另使用 Appium。網站可啟動既有本機 AVD／Appium及選裝置，不提供產品腳本執行，不恢復 VM／舊 Control API。依使用者補充，本輪只準備框架與環境，不開啟 LINE、不擷取實際手機畫面、不發送推播。完整契約見 docs/ui-testing-reports.md。
 
@@ -14,6 +14,7 @@
 
 | 版本 | 日期 | 說明 |
 | --- | --- | --- |
+| 2.36 | 2026-11-13 | 測試清單升級為品質、腳本、最近結果與版本分欄追蹤表，新增篩選及品質明細；catalog 回應增加選填 qualityWarnings。未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 2.35 | 2026-11-12 | 葉功能改主區完整閱讀器與 API 流程／測試案例分頁，來源和長步驟按需展開；分類地圖原位置保留，取消寬度相關的右側／下方詳情。未改路由、守衛、導向、API、GraphQL payload 或 DB schema。 |
 | 2.34 | 2026-11-12 | 功能詳情改為預設可見的前端操作與 API 流程表，新增選填 api／transfer 說明及舊分析升級，來源證據按需展開。未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 2.33 | 2026-11-12 | 序列圖前移至功能詳情，AI 分析依前端證據產生互動與條件，無案例也可閱讀；舊分析下次執行完整升級，來源異動標示舊圖。功能 metadata 新增選填 sequence，未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
@@ -125,3 +126,8 @@ summary 顯示檔案總數及含測試內容／空白草稿／待核對。以 AS
 ## 圖文報告與失敗診斷
 
 網站及離線 HTML 共用 framework/journey-report.mjs，使用使用者提供的深藍白紙角色圖文範本。網站外框深色，本文以不含 allow-same-origin 的 sandbox srcDoc 隔離，資料逃逸並限制 CSP；新增圖文下載及卷別，篩選時重建文件，無新 API 端點。report token 快照源自 Tailwind 設定。catalog 預期、執行實際及安全 diagnostic 為可選欄位；空白頁不得視為就緒，API 等待逾時留操作與現場圖。舊報告不補造，完整契約與驗證見 docs/ui-testing-reports.md。
+
+
+## 測試清單追蹤表
+
+CaseTrackingTable.tsx 取代既有測試清單表格，保留功能子樹範圍及案例詳情入口；搜尋、類型與狀態篩選在返回詳情後保留，焦點回原案例。品質提醒由 catalog 回應的 qualityWarnings 供應，缺欄位顯示尚未檢查。完整契約見 ../../docs/test-traceability.md；驗證使用 DS_REQUIRE_BROWSER=1 node scripts/verify-tracking-ui.mjs。

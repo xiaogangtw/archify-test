@@ -1,8 +1,8 @@
 # Archify Design System
 
-文件版本：1.29
+文件版本：1.30
 
-最後更新：2026-11-12
+最後更新：2026-11-13
 
 測試報告分 API 與畫面兩類，畫面標示 web／android，分別固定寫入獨立專案 reportDir/api、reportDir/ui，日期時間命名並輸出 JSON／HTML／TXT。schemaVersion 1 新增 testType、screenshotsEnabled、target、dataMode、screenshots，保留舊根目錄報告。config/report.json 的截圖在新專案預設開啟，既有明確關閉保留，網站可保存下次執行選項；僅新版畫面 fixtures 在開啟時擷取 PNG，API 不留圖。一般畫面使用本機前端 WEB_BASE_URL 與 LIFF mock，並對實際 BFF 資料及 DOM 分別斷言；原生推播另使用 Appium。網站可啟動既有本機 AVD／Appium及選裝置，不提供產品腳本執行，不恢復 VM／舊 Control API。依使用者補充，本輪只準備框架與環境，不開啟 LINE、不擷取實際手機畫面、不發送推播。完整契約見 docs/ui-testing-reports.md。
 
@@ -91,6 +91,7 @@ Inter／Noto Sans TC，字重 400／500／700。一般內文、側欄、表單�
 
 | 版本 | 日期 | 說明 |
 | --- | --- | --- |
+| 1.30 | 2026-11-13 | 測試清單升級為品質、腳本、最近結果與版本分欄追蹤表，新增篩選及品質明細；catalog 回應增加選填 qualityWarnings。未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 1.29 | 2026-11-12 | 葉功能改主區完整閱讀器與 API 流程／測試案例分頁，來源和長步驟按需展開；分類地圖原位置保留，取消寬度相關的右側／下方詳情。未改路由、守衛、導向、API、GraphQL payload 或 DB schema。 |
 | 1.28 | 2026-11-12 | 功能詳情改為預設可見的前端操作與 API 流程表，新增選填 api／transfer 說明及舊分析升級，來源證據按需展開。未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 1.27 | 2026-11-12 | 序列圖前移至功能詳情，AI 分析依前端證據產生互動與條件，無案例也可閱讀；舊分析下次執行完整升級，來源異動標示舊圖。功能 metadata 新增選填 sequence，未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
@@ -135,3 +136,8 @@ Inter／Noto Sans TC，字重 400／500／700。一般內文、側欄、表單�
 ## 共用圖文報告
 
 報告本文的深藍標頭、白紙情境、角色／動作／預期／實際及三欄旅程圖依使用者範本，不套用產品外框深色。16px 報告本文與14px圖說沿用允許字級，32px標題、24px情境、12px面板圓角及8px控制項。無裝飾圖示或動態。圖文與網站使用相同產生器，文字安全逃逸、隔離框架標題及 CSP，鍵盤 Tab 進入內容、Space 展開、Escape 關閉圖片；不以原始錯誤內容作診斷。未知、略過及證據缺失以文字表達。
+
+
+## 測試清單追蹤表
+
+測試清單以功能／案例、案例品質、腳本關聯、最近結果及版本核對分欄，文字為主、紅黃語意色克制使用，不用綠色表示案例已寫完。搜尋／類型後為狀態計數，數量可重疊；預設全部並按失敗及待核對排序。表格14px，控制項至少32px，長名稱短讀兩行並可進詳情；品質與版本內容用既有 Disclosure，細節按需展開。參考 Astryx CLI 0.7.14 的 table-filter／TableFilterableTable，沿用 ds 與 Tailwind，未引入 StyleX；無新增動態效果。

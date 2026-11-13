@@ -18,6 +18,7 @@ export interface TestIntent {
 }
 export interface Catalog { schemaVersion: 1; features: Feature[]; cases: TestIntent[]; frontendAnalysis?: FrontendAnalysis }
 export interface CaseView extends TestIntent {
+  qualityWarnings?: { code: string; location: string; message: string }[];
   review: { status: 'incomplete' | 'pending' | 'confirmed' | 'changed'; fingerprint: string; problems: string[]; confirmedAt: string | null };
   issues: { type: string; text: string }[]; scripts: string[]; declaredSteps: string[];
   apis: { path: string; name: string; evidence: { path: string; line: number }[]; inAnalysis: boolean }[];

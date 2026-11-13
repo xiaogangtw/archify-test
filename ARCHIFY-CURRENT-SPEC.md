@@ -1,11 +1,12 @@
-文件版本：1.7
+文件版本：1.8
 
-最後更新：2026-11-12
+最後更新：2026-11-13
 
 ## 修訂紀錄
 
 | 版本 | 日期 | 說明 |
 | --- | --- | --- |
+| 1.8 | 2026-11-13 | 測試清單升級為品質、腳本、最近結果與版本分欄追蹤表，新增篩選及品質明細；catalog 回應增加選填 qualityWarnings。未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 1.7 | 2026-11-12 | 葉功能改主區完整閱讀器與 API 流程／測試案例分頁，來源和長步驟按需展開；分類地圖原位置保留，取消寬度相關的右側／下方詳情。未改路由、守衛、導向、API、GraphQL payload 或 DB schema。 |
 | 1.6 | 2026-11-12 | 功能詳情改為預設可見的前端操作與 API 流程表，新增選填 api／transfer 說明及舊分析升級，來源證據按需展開。未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 1.5 | 2026-11-12 | 序列圖前移至功能詳情，AI 分析依前端證據產生互動與條件，無案例也可閱讀；舊分析下次執行完整升級，來源異動標示舊圖。功能 metadata 新增選填 sequence，未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
@@ -64,7 +65,7 @@ custom reporter 將 test.step 實際結果或宣告的流程轉成 schemaVersion
 
 文件版本：1.69
 
-最後更新：2026-11-12
+最後更新：2026-11-13
 
 > 閱讀定位：本文件保留既有日期式功能沿革；部分章節含明示取代關係，請與相關專題文件及程式交叉核對。歷史模擬與驗證紀錄不代表目前 VM 或真實系統已部署驗收。文件分類見 [文件總索引](docs/README.md)。
 
@@ -133,6 +134,7 @@ custom reporter 將 test.step 實際結果或宣告的流程轉成 schemaVersion
 | 1.10 | 2026-11-03 | 新增人工固定 API 案例版本轉換端點，保留原腳本歷史，以既有發送器執行；新增 REST payload，未改既有路由、守衛、導向、GraphQL payload 或 DB schema。 |
 | 1.9 | 2026-11-03 | 釐清 Playwright Runner 的內建 Smoke 網址與網路隔離，外部 API 撰寫改指向既有 API 流程；未改路由、守衛、導向、API 結構、GraphQL payload 或 DB schema。 |
 | 1.8 | 2026-11-03 | Test Case 撰寫要求具名 test.step，讓 API 操作及斷言對齊流程預覽與 Runner；未改路由、守衛、導向、API 結構、GraphQL payload 或 DB schema。 |
+| 1.8 | 2026-11-13 | 測試清單升級為品質、腳本、最近結果與版本分欄追蹤表，新增篩選及品質明細；catalog 回應增加選填 qualityWarnings。未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 1.7 | 2026-11-02 | TC 改用獨立序列，既有第一筆有效 TC 由 000001 起算，FC 與歷史快照不變；新增 DB 欄位及序列，未改路由、守衛、導向、API 結構或 GraphQL payload。 |
 | 1.6 | 2026-11-02 | Test Case 撰寫接入同專案已保存 API 證據與非秘密認證對應，新增 /api/llm 選用 projectId；未改路由、守衛、導向、GraphQL payload 或 DB schema。 |
 | 1.5 | 2026-11-02 | 自動化 Flow Case 使用 FC，腳本 Test Case 保留 TC；沿用數字識別與歷史快照，未改路由、守衛、導向、API 結構、GraphQL payload 或 DB schema。 |
@@ -742,3 +744,8 @@ CLI 的 api／web／android／ui 命令以 --project=名稱 固定 project，支
 ### 報告條列與完整敘述
 
 報告入口以橫幅清單列報告，每項提供「下載」及另開原版「開啟」HTML，不自動顯示報告正文。HTML 沿用原版版面，案例呈現正常流程及原始畫面證據，僅移除「關鍵畫面」分組，錯誤與失敗標紅。新報告保存scenarioSteps，清楚呈現角色、操作與核對位置；失敗說明已完成與停止步驟，後續未驗證。具體成功結果可由archify-case-result純文字附件提供，僅在成功案例採用；缺少觀察不把預期改成實際。舊報告只依已保存的證據呈現，不覆寫。
+
+
+## 測試清單追蹤表
+
+功能地圖的測試清單提供案例品質、腳本關聯、最近結果及版本核對五欄追蹤，支援搜尋、驗證類型及可重疊的狀態計數篩選，失敗與待處理優先。catalog 讀取回應增加選填 qualityWarnings（code／location／message），共用 CLI 檢查邏輯、不改寫案例或意圖版本。舊結果與目前來源分開判讀；詳見 docs/test-traceability.md。未新增頁面或執行入口。

@@ -43,3 +43,7 @@ API 與畫面案例共用 test-cases/catalog.json，每個新增或修改的案�
 | 含畫面的跨平台流程 | flow | mixed | 依實際 runner 指定唯一 spec |
 
 API 流程即使驗證供畫面使用的資料，也仍是 target: api；只有實際操作或斷言畫面才歸畫面流程。kind 表達單支或組合，不代表平台。未知平台先詢問並保留問題，不靠名稱猜測或為了分類建立假測試。舊案例缺 target 時網站僅依路徑或 kind: api 推定，否則列待分類；AI 修改舊案例時依證據補齊 target，保留 ID、人工答案、斷言與其他欄位。報告使用的 android 與 testType 是另一份契約，不寫入 catalog.target。
+
+## 唯讀品質檢查
+
+使用 npm run cases:check -- --all 檢查全部案例，或傳單一案例 ID。warnings 提供模糊預期、資料占位、重複步驟、來源依據、清理與矩陣疑點的位置；僅供核對，不修改案例、不新增核准關卡。完整性 problems 才造成退出碼 1，品質提醒不阻擋。ready 不代表產品通過或矩陣每列已實作。既有外部專案不自動更新。

@@ -5,6 +5,7 @@ import type { LocalConfig } from './client';
 import { CaseEditor } from './CaseEditor';
 import { FeatureMap } from './FeatureMap';
 import { GapReport } from './GapReport';
+import { CaseTrackingTable } from './CaseTrackingTable';
 import { MapDetails } from './MapDetails';
 import { FeatureReader } from './FeatureReader';
 import {
@@ -18,7 +19,7 @@ import {
 } from './feature-graph';
 import type { MapNode, TreeCoverageMetrics } from './feature-graph';
 import type { CaseView, CatalogView, TestIntent, Feature } from './catalog';
-import { resultLabels, organizeFeaturesTask, featureTestDraftHandoff } from './catalog';
+import { organizeFeaturesTask, featureTestDraftHandoff } from './catalog';
 import { useAiJob } from './useAiJob';
 import { AiJobStatus } from './AiJobStatus';
 import { WorkspaceToast } from './WorkspaceToast';
@@ -45,26 +46,6 @@ const covDotTone: Record<'full' | 'partial' | 'none' | 'retired', Tone> = {
   none: 'danger',
   retired: 'neutral',
 };
-
-function summarizeCaseIssues(issues: CaseView['issues']) {
-  if (!issues.length) return '';
-  const labels: string[] = [];
-  for (const issue of issues) {
-    let label = '待確認';
-    if (issue.text.includes('請求契約不同')) label = 'API 契約不同';
-    else if (issue.text.includes('未出現在目前分析')) label = 'API 未再出現';
-    else if (issue.type === 'source') label = '來源已變更';
-    else if (issue.type === 'knowledge' || issue.type === 'knowledge-run') label = '知識已更新';
-    else if (issue.type === 'script') label = '未連結腳本';
-    else if (issue.type === 'question') label = '待確認問題';
-    else if (issue.type === 'expected') label = '缺預期結果';
-    else if (issue.type === 'intent') label = '案例已更新';
-    else if (issue.type === 'duplicate') label = '重複腳本';
-    if (!labels.includes(label)) labels.push(label);
-  }
-  const head = labels.slice(0, 2).join('、');
-  return issues.length > 1 ? `${head}（${issues.length} 項）` : head;
-}
 
 const collapsedStorageKey = (projectRoot?: string) =>
   projectRoot ? `archify.catalog.collapsed.v1:${projectRoot}` : 'archify.catalog.collapsed.v1';
@@ -142,10 +123,6 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
     [view],
   );
   const coverageCache = useMemo(() => new Map<string, TreeCoverageMetrics>(), [view]);
-  const featureNameMap = useMemo(
-    () => new Map((view?.catalog.features || []).map(row => [row.id, row.name])),
-    [view?.catalog.features],
-  );
   const treeFeatures = useMemo(
     () => (view ? orderedFeatureTree(view.catalog.features, systemRoot?.id) : []),
     [view, systemRoot?.id],
@@ -258,6 +235,7 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
       setFeatureId(match.featureId);
       setLayer('tests');
     }
+    readingOrigin.current = document.activeElement as HTMLElement | SVGElement;
     setSelected(
       featureGraph(view, match.featureId, 'tests').nodes.find(
         node => node.kind === 'case' && node.caseId === id,
@@ -270,7 +248,9 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
     const id = selected?.id;
     setSelected(undefined);
     setCode(undefined);
-    if (id) {
+    if (mode === 'list') {
+      requestAnimationFrame(() => readingOrigin.current?.focus());
+    } else if (id) {
       requestAnimationFrame(() =>
         document.querySelector<SVGElement>(`[data-map-node="${CSS.escape(id)}"]`)?.focus(),
       );
@@ -376,7 +356,7 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
     view && currentFeature ? featureTreeCoverage(currentFeature.id, view, coverageCache) : undefined;
   const fa = view?.catalog.frontendAnalysis;
   const readingFeature = view?.catalog.features.find(item => item.id === readingFeatureId);
-  const showFeatureLabelInList = !subtreeIds || subtreeIds.size > 1;
+
 
   return (
     <WorkspaceShell navigation={navigation} wide>
@@ -806,92 +786,7 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
                         />
                       </div>
                     ) : (
-                      <Surface hidden={!!selected} padding="none" className="min-w-0 overflow-hidden" aria-label="測試清單">
-                        {cases.length > 0 ? (
-                          <table aria-label="測試清單" className="w-full table-fixed text-left">
-                            <thead>
-                              <tr className="border-b border-line bg-surface-subtle text-muted">
-                                <th className="p-3.5 font-medium">測試名稱</th>
-                                <th className="p-3.5 font-medium">最近結果</th>
-                                <th className="p-3.5 font-medium">需補充</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-line">
-                              {cases.map(row => {
-                                const hasSourceIssue = row.issues.some(
-                                  issue => issue.type === 'source',
-                                );
-                                const ownerName = showFeatureLabelInList
-                                  ? featureNameMap.get(row.featureId)
-                                  : undefined;
-                                return (
-                                  <tr key={row.id} className="hover:bg-surface-subtle">
-                                    <td className="p-3">
-                                      <ActionButton
-                                        variant="ghost"
-                                        align="start"
-                                        className="max-w-full break-words text-ink"
-                                        onClick={() => selectCase(row.id)}
-                                      >
-                                        {row.title}
-                                      </ActionButton>
-                                      {ownerName && (
-                                        <p className="mt-0.5 px-3 text-muted">{ownerName}</p>
-                                      )}
-                                    </td>
-                                    <td className="p-3.5">
-                                      <div className="flex flex-wrap items-center gap-2">
-                                        <Badge
-                                          tone={
-                                            row.latest?.status === 'passed' &&
-                                            row.freshness === 'current' &&
-                                            !hasSourceIssue
-                                              ? 'success'
-                                              : row.latest?.status === 'failed'
-                                                ? 'danger'
-                                                : hasSourceIssue
-                                                  ? 'warning'
-                                                  : 'neutral'
-                                          }
-                                          dot
-                                        >
-                                          {row.latest
-                                            ? `上次${resultLabels[row.latest.status] || row.latest.status}`
-                                            : '尚未執行'}
-                                        </Badge>
-                                        {row.latest && row.freshness !== 'current' && (
-                                          <span className="text-muted">新版未驗證</span>
-                                        )}
-                                        {hasSourceIssue && (
-                                          <span className="text-warning">來源已變更</span>
-                                        )}
-                                      </div>
-                                    </td>
-                                    <td
-                                      className="break-words p-3.5 text-muted"
-                                      title={
-                                        row.issues.length
-                                          ? row.issues.map(issue => issue.text).join('\n')
-                                          : undefined
-                                      }
-                                    >
-                                      {row.issues.length ? (
-                                        <span className="text-warning">
-                                          {summarizeCaseIssues(row.issues)}
-                                        </span>
-                                      ) : (
-                                        '—'
-                                      )}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        ) : (
-                          <p className="p-6 text-muted">這個功能還沒有測試。</p>
-                        )}
-                      </Surface>
+                      <div hidden={!!selected}><CaseTrackingTable cases={cases} features={view.catalog.features} busy={busy} onCase={selectCase} /></div>
                     )}
 
                     {selected && (

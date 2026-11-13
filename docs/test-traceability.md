@@ -1,19 +1,21 @@
 # 功能、知識與測試關聯
 
-文件版本：1.13
+文件版本：1.15
 
-最後更新：2026-11-12
+最後更新：2026-11-13
 
 測試報告分 API 與畫面兩類，畫面標示 web／android，分別固定寫入獨立專案 reportDir/api、reportDir/ui，日期時間命名並輸出 JSON／HTML／TXT。schemaVersion 1 新增 testType、screenshotsEnabled、target、dataMode、screenshots，保留舊根目錄報告。config/report.json 的截圖預設關閉，網站可保存下次執行選項；僅新版畫面 fixtures 在開啟時擷取 PNG，API 不留圖。一般畫面使用本機前端 WEB_BASE_URL 與 LIFF mock，並對實際 BFF 資料及 DOM 分別斷言；原生推播另使用 Appium。網站可啟動既有本機 AVD／Appium及選裝置，不提供產品腳本執行，不恢復 VM／舊 Control API。依使用者補充，本輪只準備框架與環境，不開啟 LINE、不擷取實際手機畫面、不發送推播。完整契約見 docs/ui-testing-reports.md。
 
 測試流程共用 catalog，但以案例 target 明確分類：api 為 API 流程，web／mobile／mixed 為畫面流程；kind: flow 可搭配 target: api 表達多 API 串接。舊案例缺 target 時，先依 tests/ui、web、mobile 路徑推定畫面，再依 tests/api、flows 或 kind: api 推定 API，其餘列待分類並提示補齊，不自行改寫檔案。新初始化複製的 AGENTS、案例格式及規劃／實作 skills 均要求明確填 target；既有專案不自動覆寫自訂指引，需定向同步分類規則。
 
-測試流程（?view=flows）為唯讀案例表格，採四欄橫向步驟矩陣（案例／功能｜測試步驟｜使用資料｜預期結果）呈現每一步驟的操作、選填步驟使用資料及逐步預期；前置條件、整體預期與清理方式精簡附於案例末尾橫向摘要列，長篇舊資料以原生 `<details>` 折疊按需展開。僅保留重新讀取與測試專案位置，不提供新增、編輯、確認、任務複製、文字篩選或舊流程檔入口。POST /local-api/case-plans 只讀取並驗證 test-cases/catalog.json，不掃描或執行測試、不讀取舊確認檔；案例格式、版本與既有內容保留。規劃與實作全在本機專案使用 plan-test-cases／implement-tests skill 完成，知識不足在本機對話集中詢問。cases:check 預設只檢查資料完整性，status ready 不代表核准或產品通過；--review 及舊確認端點／檔案僅保留相容，不作實作前置條件。測試報告維持 ?view=reports。
+測試流程（?view=flows）為唯讀案例表格，採四欄橫向步驟矩陣（案例／功能｜測試步驟｜使用資料｜預期結果）呈現每一步驟的操作、選填步驟使用資料及逐步預期；前置條件、整體預期與清理方式精簡附於案例末尾橫向摘要列，長篇舊資料以原生 `<details>` 折疊按需展開。僅保留重新讀取與測試專案位置，不提供新增、編輯、確認、任務複製、文字篩選或舊流程檔入口。POST /local-api/case-plans 只讀取並驗證 test-cases/catalog.json，不掃描或執行測試、不讀取舊確認檔；案例格式、版本與既有內容保留。規劃與實作全在本機專案使用 plan-test-cases／implement-tests skill 完成，知識不足在本機對話集中詢問。cases:check 檢查資料完整性並提供非阻擋的品質提醒，status ready 不代表核准或產品通過；--review 及舊確認端點／檔案僅保留相容，不作實作前置條件。測試報告維持 ?view=reports。
 
 ## 修訂紀錄
 
 | 版本 | 日期 | 說明 |
 | --- | --- | --- |
+| 1.15 | 2026-11-13 | 測試清單升級為品質、腳本、最近結果與版本分欄追蹤表，新增篩選及品質明細；catalog 回應增加選填 qualityWarnings。未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
+| 1.14 | 2026-11-13 | cases:check 新增唯讀品質提醒及 --all；不以提醒阻擋實作。未改路由、守衛、導向、API、GraphQL payload 或 DB schema。 |
 | 1.13 | 2026-11-12 | 葉功能改主區完整閱讀器與 API 流程／測試案例分頁，來源和長步驟按需展開；分類地圖原位置保留，取消寬度相關的右側／下方詳情。未改路由、守衛、導向、API、GraphQL payload 或 DB schema。 |
 | 1.12 | 2026-11-12 | 功能詳情改為預設可見的前端操作與 API 流程表，新增選填 api／transfer 說明及舊分析升級，來源證據按需展開。未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 1.11 | 2026-11-12 | 序列圖前移至功能詳情，AI 分析依前端證據產生互動與條件，無案例也可閱讀；舊分析下次執行完整升級，來源異動標示舊圖。功能 metadata 新增選填 sequence，未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
@@ -103,3 +105,18 @@ knowledge-import 額外接受每份 category／featureIds；knowledge／knowledg
 ## 網站 AI 分析與知識更新
 
 依使用者新要求，網站已啟動本機 Codex 分析，不再只提供複製提示。功能圖與 MD／HTML 知識有 AI 工作進度、取消與驗證套用；知識更新去重、取代舊版先封存並可還原。CLI 使用本機登入但模型推論可能傳到服務，預設不載入使用者 config。詳細契約與限制見 [網站 AI 分析](website-ai-analysis.md)。先前不啟動 CLI 的描述為舊操作限制，已由本次決策取代。
+
+## 案例品質提醒
+
+npm run cases:check -- --all 批次讀取全部案例，回傳完整性 problems 與品質 warnings；單一案例維持 ID 用法。品質檢查提醒模糊預期、資料占位、重複步驟、缺少來源依據、清理及矩陣缺項，提供欄位位置，不修改案例。只缺品質提醒不改退出碼，完整性錯誤仍為 1。ready 不代表需求完整、矩陣已實作或產品通過；不推斷沒有輸入資料的案例有缺陷。外部既有專案需另行受控升級。
+
+
+## 測試清單追蹤表
+
+既有功能地圖的測試清單依目前功能子樹讀取案例，分欄顯示功能／案例、案例品質、腳本關聯、最近結果及版本核對。搜尋支援名稱、功能與 ID，類型依 target／既有相容規則區分 API、畫面及未分類；狀態計數基於搜尋與類型範圍，彼此可重疊。預設全部案例，失敗優先，其次為版本、品質與腳本疑點，不隱藏無異常案例。零結果提供清除篩選。
+
+案例品質由本機 catalog 讀取時共用 caseQuality 產生選填 qualityWarnings（code／location／message），不保存到 catalog、不改意圖指紋，不讀取或執行測試模組；完整性 problems 與品質提醒在欄內按需展開。無提醒不是業務完整證明，舊服務未提供該欄位時顯示尚未檢查。唯一腳本才標已連結；路徑存在不等於已實作。最近結果保留上次時間（Asia/Taipei），舊通過在版本未知、來源待核對或腳本歧義時不標綠；未執行顯示尚無報告基準。版本明細保留來源、知識、案例與依賴問題，不推定根因或部署版本。
+
+點案例沿用原詳情及報告連結；返回保留搜尋、篩選與焦點。介面固定深色，沿用 ds 與 Tailwind token、14px 字級、32px 控制項；參考 Astryx CLI 0.7.14 的 table-filter／TableFilterableTable，未安裝 StyleX 或第二套設計 runtime。新版本機讀取直接使用平台共用品質檢查，外部測試專案 CLI 仍需另行升級。
+
+驗證：DS_REQUIRE_BROWSER=1 node scripts/verify-tracking-ui.mjs，以合成專案驗證搜尋、篩選、品質展開、版本區分、焦點返回、axe、桌面尺寸與縮放；不操作產品。

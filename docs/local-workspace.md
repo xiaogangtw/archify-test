@@ -1,8 +1,8 @@
 # 本機來源分析與獨立測試專案
 
-文件版本：2.28
+文件版本：2.29
 
-最後更新：2026-11-11
+最後更新：2026-11-17
 
 測試報告分 API 與畫面兩類，畫面標示 web／android，分別固定寫入獨立專案 reportDir/api、reportDir/ui，日期時間命名並輸出 JSON／HTML／TXT。schemaVersion 1 新增 testType、screenshotsEnabled、target、dataMode、screenshots，保留舊根目錄報告。config/report.json 的截圖預設關閉，網站可保存下次執行選項；僅新版畫面 fixtures 在開啟時擷取 PNG，API 不留圖。一般畫面使用本機前端 WEB_BASE_URL 與 LIFF mock，並對實際 BFF 資料及 DOM 分別斷言；原生推播另使用 Appium。網站可啟動既有本機 AVD／Appium及選裝置，不提供產品腳本執行，不恢復 VM／舊 Control API。依使用者補充，本輪只準備框架與環境，不開啟 LINE、不擷取實際手機畫面、不發送推播。完整契約見 docs/ui-testing-reports.md。
 
@@ -14,6 +14,7 @@
 
 | 版本 | 日期 | 說明 |
 | --- | --- | --- |
+| 2.29 | 2026-11-17 | 新建測試專案附 break-ui 技能及 CATALOG，以測試 fixture／mock 檢查極端資料，產品來源仍唯讀；既有專案不自動升級。未改路由、守衛、導向、API、GraphQL payload 或 DB schema。 |
 | 2.28 | 2026-11-11 | 案例規劃 `steps` 擴充選填 `data` 且允許前置／輸入步驟 `expected` 留空，測試流程表格（`?view=flows`）改採四欄橫向步驟矩陣與原生折疊摘要，並同步更新案例規劃編輯與 AI 引導規範；未改路由、守衛、導向、產品 API、GraphQL payload 或 DB schema。 |
 | 2.27 | 2026-11-11 | 新專案 `initialize()` 改寫入空 `test-cases/catalog.json`，且 `setup()` 於 `schemaVersion: 2` 專案自動非覆寫產生單支 API 模組與 `.spec.ts` 草稿；未改路由、守衛、導向、API、GraphQL payload 或 DB schema。 |
 | 2.26 | 2026-11-11 | 初始設定第一步點選「本機資料夾」直接開啟電腦資料夾選擇器（移除「選擇前端專案」按鈕與開啟中橫幅），第三步知識整理改採單一頂端橫幅 toast 並於完成後消失；未改路由、守衛、導向、API、GraphQL payload 或 DB schema。 |
@@ -228,6 +229,8 @@ api/ 為保留目錄，不能用作 analysis／report／案例輸出。新專案
 POST /local-api/clone-source 接受 url／path，沿用 loopback、同來源及 session。URL 只接受公開 HTTPS（無帳密／query／fragment）及 git SSH；SSH 需本機已存在金鑰與 known_hosts，不開啟互動認證。目的必須是前端與平台／測試專案之外的新目錄，上層須存在；禁止連結及覆寫。Git 使用參數陣列、非 shell、depth 1、禁止 file／ext、停用模板／hooks／全域系統 Git 設定及自動 submodule，不做套件安裝或來源執行。這也代表 HTTPS 不繼承全域 credential helper／代理／URL rewrite，私人倉庫建議先用本機既有 SSH。120 秒逾時與輸出限制，原始錯誤不回傳；失敗殘留由使用者處理或改新目錄，不自動刪除。不是 push／pull／Git 連線管理，不保存憑證。未實測外部公開／私人倉庫。
 
 setup-complete 另驗證來源與有效知識，拒絕空知識；首次 gate 只控制頁面掛載，不宣稱同帳號本機 API 變成授權隔離。
+
+新建立的獨立測試專案亦交付 skills/break-ui/SKILL.md 及 CATALOG.md，來源為 emilkowalski/skills 的固定副本，初始化不連網。測試專案 README／AGENTS 提供入口；透過 fixture／mock 檢查極端資料，不修改產品來源或新增 dev toggle，沿用標準網頁證據與報告。交付不代表已執行；重新連接既有專案不補入或覆寫技能。
 
 新建立的獨立測試專案透過既有 skills 遞迴收集，一併交付 skills/setup-android/SKILL.md；README／AGENTS 與 write-push-tests 有明確入口。技能先檢查現有工具，再提供 Android Studio／SDK／Google Play AVD／Appium 官方安裝指引，區分平台 .env 與測試專案 .env，不會自動安裝或執行。SDK、AVD 磁碟、登入資料不隨 Git；平台需找到 SDK 及既有 AVD 後，檢查環境才列出啟動按鈕。既有專案重新連接仍非覆寫，不自動升級技能。
 

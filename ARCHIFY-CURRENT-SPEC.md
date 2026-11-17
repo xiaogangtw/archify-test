@@ -1,11 +1,12 @@
-文件版本：1.2
+文件版本：1.4
 
-最後更新：2026-11-10
+最後更新：2026-11-17
 
 ## 修訂紀錄
 
 | 版本 | 日期 | 說明 |
 | --- | --- | --- |
+| 1.4 | 2026-11-17 | 新專案範本加入 break-ui 及極端資料目錄，透過測試 fixture／mock 操作且產品來源唯讀，既有專案不自動升級。未改路由、守衛、導向、API、GraphQL payload 或 DB schema。 |
 | 1.3 | 2026-11-10 | 報告入口改橫幅清單，每筆下載或另開原版HTML；原版面僅移除關鍵畫面分組，保留正常流程及證據。未改路由、產品API或DB。 |
 | 1.0 | 2026-11-10 | 補報告規格metadata；單次執行改單檔HTML並解除歷史截斷，local-api/report相容新HTML。未改路由、守衛、導向、產品API、GraphQL payload或DB schema。 |
 
@@ -20,6 +21,8 @@
 新測試專案格式為 schemaVersion 2、framework playwright。分析仍依方法／端點及 GraphQL 操作文件去重，提供來源與 caseFile；每個操作配對產生 api/操作名稱.ts 與 tests/api/操作名稱.spec.ts（通用 Query／Mutation／Subscription／匿名名稱改取頂層實際欄位；alias 不當成功能名，fragment 會追查，碰撞加短 ID），請求與預設資料在 API 模組，單支及 tests/flows/ 流程匯入 callApi，之後由 AI 補原生 test／expect，不再逐接口產生 requests／fixtures JSON。舊格式可讀取、須遷移後才生成新稿；遇到既有新稿或舊檔仍不覆寫。
 
 同一來源／輸出範圍的分析建立受管腳本索引，完整根目錄且無解析警告時，列出前端未再出現的腳本供選取確認。僅處理帶單一對應 archify-id 的單檔案例，不動手動腳本或共用資產；同名 GraphQL 或相同來源檔疑似變更仍保留。確認時重查來源及腳本 hash，再移出 tests 並完整封存到 legacy/removed-api/台北日期時間；可還原且不覆寫。首次舊專案只建立基準，換來源絕對路徑需重新建立，不追溯猜測。
+
+新建立測試專案透過既有 skills 遞迴複製交付 break-ui/SKILL.md 與 CATALOG.md 固定副本，建立時不連網更新。AI 可依真實欄位限制，以測試 fixture／mock 檢查長短文字、缺值與集合邊界，沿用標準網頁逐步證據及單檔報告；不修改產品來源或加入 dev toggle，不自動執行。既有已初始化專案重新連接維持非覆寫，不自動新增或升級技能。
 
 新初始化的獨立專案一併提供 tsconfig.json、support/bff.d.mts、鎖版 TypeScript 與 @types/node，以及 npm run check:types；初次 npm ci 即備齊編輯器及型別檢查依賴，無需手動補設定。check:types 不執行測試、不呼叫產品環境；通過不代表業務驗證。既有 initialized 專案重新連接維持非覆寫，不會自動升級自訂設定。
 

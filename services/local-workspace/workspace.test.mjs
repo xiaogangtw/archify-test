@@ -14,6 +14,24 @@ import {fixture,request} from './test-support.mjs';
 import { operationStems } from './naming.mjs';
 import { renameLegacyArtifacts } from './rename-artifacts.mjs';
 
+test('新專案完整交付 break-ui 與資料目錄，重新連接保留自訂技能', async () => {
+  const f = await fixture();
+  try {
+    await f.workspace.initialize();
+    for (const name of ['SKILL.md', 'CATALOG.md']) {
+      const relative = `skills/break-ui/${name}`;
+      const expected = await readFile(new URL(`../../test-project/${relative}`, import.meta.url), 'utf8');
+      assert.equal(await readFile(join(f.project, relative), 'utf8'), expected);
+      await writeFile(join(f.project, relative), expected + '\n本機自訂內容。');
+    }
+    const reconnected = createWorkspace(f.config);
+    assert.equal((await reconnected.initialize()).existing, true);
+    for (const name of ['SKILL.md', 'CATALOG.md']) {
+      assert.ok((await readFile(join(f.project, 'skills/break-ui', name), 'utf8')).endsWith('\n本機自訂內容。'));
+    }
+  } finally { await f.dispose(); }
+});
+
 test('新專案內建型別檢查，生成稿與 BFF 可用且錯誤會被攔截', async () => {
   const f = await fixture();
   try {

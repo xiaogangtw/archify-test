@@ -1,5 +1,7 @@
 # 測試專案協作規則
 
+網頁極端資料壓力測試使用 [break-ui skill](skills/break-ui/SKILL.md) 與其 [CATALOG](skills/break-ui/CATALOG.md)，檢查長短文字、缺值、空／單筆／大量集合等邊界。新建專案自動交付；透過測試 fixture／mock 注入，不修改產品來源或加入切換控制。沿用標準網頁 fixture 與報告，先回報問題與建議；技能交付不代表已執行驗證。既有專案重新連接不自動補入或覆寫技能。
+
 Android 環境準備先讀 [setup-android skill](skills/setup-android/SKILL.md)。平台新建測試專案會一併放入這份技能與官方下載指引；SDK、AVD、Appium 及登入資料仍各機安裝，不隨 Git 配送。只測 API／網頁不需要安裝 Android。
 
 一般畫面使用 skills/write-web-tests/SKILL.md 與 tests/ui；只有推播原生畫面使用 skills/write-push-tests/SKILL.md 與 tests/mobile。報告使用 skills/playwright-test-report/SKILL.md，固定 reports/api／reports/ui 並輸出 JSON／HTML／TXT；新專案截圖預設開啟，僅新版畫面 fixtures 依 config/report.json 處理。修改框架／報告不授權開啟 LINE、手機截圖或發推播，這些操作需之後明確要求。

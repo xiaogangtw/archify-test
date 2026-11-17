@@ -1,5 +1,7 @@
 # 獨立 Playwright 測試專案
 
+網頁極端資料壓力測試使用 [break-ui skill](skills/break-ui/SKILL.md) 與其 [CATALOG](skills/break-ui/CATALOG.md)，檢查長短文字、缺值、空／單筆／大量集合等邊界。新建專案自動交付；透過測試 fixture／mock 注入，不修改產品來源或加入切換控制。沿用標準網頁 fixture 與報告，先回報問題與建議；技能交付不代表已執行驗證。既有專案重新連接不自動補入或覆寫技能。
+
 網頁規劃與實作 skills 先追查前端路由、元件、表單驗證及事件，將必要前置與中間操作補入 catalog，記錄填值規則與來源依據。程式可確定的操作自行查證；缺少資料依據或業務預期則集中提問，不以 helper 舊常數代替答案。這是撰寫指引，不是自動完整性驗證，也不授權產品操作。既有專案需定向同步技能，重新連接不覆寫自訂內容。
 
 Android 環境準備先讀 [setup-android skill](skills/setup-android/SKILL.md)。平台新建測試專案會一併放入這份技能與官方下載指引；SDK、AVD、Appium 及登入資料仍各機安裝，不隨 Git 配送。只測 API／網頁不需要安裝 Android。

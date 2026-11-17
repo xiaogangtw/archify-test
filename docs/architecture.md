@@ -1,6 +1,6 @@
 # 架構與維護地圖
 
-文件版本：1.23
+文件版本：1.24
 
 最後更新：2026-11-11
 
@@ -10,7 +10,7 @@
 
 ## 本機分析框架與閱讀器
 
-apps/web/src/main.tsx 掛載 WorkspaceApp，以 SetupWizard 設定、SourceWorkspace 分析來源、KnowledgeWorkspace 分類／編修文字知識、CatalogWorkspace 管理功能、獨立測試清單與 GapReport 雙向缺口覆蓋報表，FlowWorkspace 以同一 catalog 呈現唯讀案例表格（含測試因子與決策矩陣），規劃與實作回到本機測試專案；feature-graph.ts 依既有資料建立純圖模型，FeatureMap 提供原生 SVG 視窗／拖曳／鍵盤互動，MapDetails 按需提供節點詳情、ReportReader 閱讀報告。services/local-workspace/plugin.mjs 掛接 Vite dev／preview 同來源 middleware；config.mjs 讀取平台 .env，paths.mjs 檢查邊界與連結，scan.mjs 重用純 AST 模組，workspace.mjs 管理初始化／掃描／生成／讀取。沒有新 DB 或遠端 worker；受控本機 CLI 分析功能與知識，案例規劃與腳本實作使用外部本機 AI 工具。
+apps/web/src/main.tsx 掛載 WorkspaceApp，以 SetupWizard 設定、SourceWorkspace 分析來源、KnowledgeWorkspace 分類／編修文字知識、CatalogWorkspace 管理功能（含摺疊單一純容器 L1 系統外殼、群組覆蓋彙整、分支鑽研與返回／階層麵包屑）、獨立測試清單與 GapReport 雙向缺口覆蓋報表，FlowWorkspace 以同一 catalog 呈現唯讀案例表格（含測試因子與決策矩陣），規劃與實作回到本機測試專案；feature-graph.ts 依既有資料建立純圖模型，FeatureMap 提供原生 SVG 視窗／拖曳／鍵盤操作、頂列返回／階層麵包屑與節點懸停完整名稱讀數列，MapDetails 按需提供節點詳情（含階層麵包屑與子功能鑽研）、ReportReader 閱讀報告。services/local-workspace/plugin.mjs 掛接 Vite dev／preview 同來源 middleware；config.mjs 讀取平台 .env，paths.mjs 檢查邊界與連結，scan.mjs 重用純 AST 模組，workspace.mjs 管理初始化／掃描／生成／讀取。沒有新 DB 或遠端 worker；受控本機 CLI 分析功能與知識，案例規劃與腳本實作使用外部本機 AI 工具。
 
 產品測試寫入平台與來源之外的獨立專案；test-project 僅是框架交付範本。生成器 api-source.mjs 配對建立 api/*.ts 與 tests/api/*.spec.ts；tests/flows/ 匯入相同 API 模組，共用傳輸在 support/api-client.mts，資料與斷言分層，CLI 不 import 平台。reusable-api-migration.mjs 以 AST 核對靜態 operation、預檢、hash 與備份完成明確遷移，動態／碰撞保留。分析快照保存於指定 analysis 目錄，報告讀取指定 report 目錄。完整契約、失敗與相容性見[本機分析文件](local-workspace.md)。舊模組表格只作維護／遷移參照。
 
@@ -18,6 +18,7 @@ apps/web/src/main.tsx 掛載 WorkspaceApp，以 SetupWizard 設定、SourceWorks
 
 | 版本 | 日期 | 說明 |
 | --- | --- | --- |
+| 1.24 | 2026-11-11 | 優化 `feature-graph.ts`、`FeatureMap.tsx`、`CatalogWorkspace.tsx`、`MapDetails.tsx`、`GapReport.tsx`、`WorkspaceIcons.tsx` 與 `WorkspaceShell.tsx`：支援 L1 系統外殼摺疊、群組覆蓋彙整與分支鑽研、返回／麵包屑、樹狀側欄（去紅點、無滾條獨立捲動區塊與可收合記憶資料夾）、懸停完整名稱列及清單上下文保留；未改產品 API、GraphQL payload、路由、守衛、導向或 DB schema。 |
 | 1.23 | 2026-11-11 | 調整 `workspace.mjs` 初始化新專案寫入空 `test-cases/catalog.json`，並於 `setup()` 掃描後自動非覆寫產生單支 API 草稿；未改產品 API、GraphQL payload、路由、守衛、導向或 DB schema。 |
 | 1.22 | 2026-11-11 | 修正 `directory-picker.mjs` 以置頂前景 `IFileOpenDialog` 開啟現代 Windows 資料夾視窗，並在 `workspace.mjs` 與 `plugin.mjs` 支援重開取代／連線中斷中止舊選擇程序；未改產品 API、GraphQL payload、路由、守衛、導向或 DB schema。 |
 | 1.21 | 2026-11-11 | 功能地圖補齊灰色廢棄狀態、`factor` 測試因子與 `decisionTable` 決策矩陣表，新增 `GapReport` 缺口與覆蓋報表；未改產品 API、GraphQL payload、路由、守衛、導向或 DB schema。 |

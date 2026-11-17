@@ -13,7 +13,7 @@ assert.equal(process.env.DS_REQUIRE_BROWSER, '1');
 const f = await fixture();
 const { createWorkspace } = await import('../services/local-workspace/workspace.mjs');
 let sourcePickCalls = 0;
-const workspace = createWorkspace(f.config, { aiRunner: async (_config, prompt) => { const data=JSON.parse(prompt.slice(prompt.indexOf('{"existing":'))); return {documents:data.incoming.map(doc=>({title:doc.name,content:doc.content,category:'business',featureIds:[],keepId:null,replaces:[],inputIndices:[doc.index]})),conflicts:[]}; }, gitRunner: async (_file,args,options)=>{assert.equal(options.shell,false);await writeFile(join(args.at(-1),'api.ts'),'// synthetic clone only');}, pickDirectory: async kind => { if (kind === 'source') { sourcePickCalls++; return sourcePickCalls === 1 ? { path: '', cancelled: true } : { path: f.source, cancelled: false }; } return { path: f.project, cancelled: false }; } });
+const workspace = createWorkspace(f.config, { aiInspector: async () => ({ provider: 'codex', label: 'Codex', supportsImages: true, cliConfigured: '', cliResolved: 'codex', installed: true, version: '0.164.0', loggedIn: true, loginSummary: '本機 Codex CLI 已登入', models: [{ value: 'gpt-5.4', label: 'gpt-5.4' }], providers: { codex: { provider: 'codex', label: 'Codex', supportsImages: true, cliConfigured: '', cliResolved: 'codex', installed: true, version: '0.164.0', loggedIn: true, loginSummary: '本機 Codex CLI 已登入', models: [{ value: 'gpt-5.4', label: 'gpt-5.4' }] }, claude: { provider: 'claude', label: 'Claude Code', supportsImages: false, cliConfigured: '', cliResolved: 'claude', installed: true, version: '1.0.0', loggedIn: null, loginSummary: '已偵測 Claude Code 執行檔，請點「測試 CLI 連線」確認驗證狀態。', models: [{ value: 'sonnet', label: 'sonnet（Claude Code 別名）' }] }, gemini: { provider: 'gemini', label: 'Gemini CLI', supportsImages: false, cliConfigured: '', cliResolved: 'gemini', installed: false, version: '', loggedIn: false, loginSummary: '未偵測到 Gemini CLI', models: [] } } }), aiRunner: async (_config, prompt) => { if (prompt.includes('ok 為 true')) return { ok: true }; const data=JSON.parse(prompt.slice(prompt.indexOf('{"existing":'))); return {documents:data.incoming.map(doc=>({title:doc.name,content:doc.content,category:'business',featureIds:[],keepId:null,replaces:[],inputIndices:[doc.index]})),conflicts:[]}; }, gitRunner: async (_file,args,options)=>{assert.equal(options.shell,false);await writeFile(join(args.at(-1),'api.ts'),'// synthetic clone only');}, pickDirectory: async kind => { if (kind === 'source') { sourcePickCalls++; return sourcePickCalls === 1 ? { path: '', cancelled: true } : { path: f.source, cancelled: false }; } return { path: f.project, cancelled: false }; } });
 const handler = createHandler(workspace, 'ui-session');
 const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe' });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
@@ -38,9 +38,20 @@ await page.route('http://127.0.0.1:5189/**', async route => {
 try {
   await page.goto('http://127.0.0.1:5189/?view=reports');
   const dialog = page.locator('main');
+  await dialog.getByRole('heading', { name: 'AI CLI 設定' }).waitFor();
+  await dialog.getByText('已登入', { exact: true }).waitFor();
+  await dialog.getByRole('button', { name: /^模型 / }).click();
+  await dialog.getByRole('option', { name: '自訂', exact: true }).click();
+  await dialog.getByLabel('模型名稱', { exact: true }).fill('o4-mini');
+  await dialog.getByRole('button', { name: '儲存', exact: true }).click();
+  await dialog.getByRole('status').filter({ hasText: '已儲存 Codex · o4-mini' }).waitFor();
+  await dialog.getByRole('button', { name: '測試連線', exact: true }).click();
+  await dialog.getByRole('status').filter({ hasText: 'Codex 連線正常（o4-mini）' }).waitFor();
+  assert.equal(await dialog.getByRole('button', { name: '關閉通知' }).count(), 0);
+  await dialog.getByRole('button', { name: '下一步', exact: true }).click();
   await dialog.getByRole('heading', { name: '前端架構分析' }).waitFor();
   if(process.env.ARCHIFY_REVIEW_STEP==='1')console.log('REVIEW_IMAGE:'+(await page.screenshot({type:'jpeg',quality:50})).toString('base64'));
-  await dialog.getByRole('button',{name:'Git 下載 從儲存庫下載',exact:true}).click();await dialog.getByLabel('Git 網址',{exact:true}).fill('https://example.test/frontend.git');await dialog.getByLabel('下載資料夾',{exact:true}).fill(join(f.root,'cloned-source'));await dialog.getByRole('button',{name:'下載並繼續',exact:true}).click();await dialog.getByRole('heading',{name:'測試專案放置位置',exact:true}).waitFor();await page.reload();await dialog.getByRole('heading',{name:'前端架構分析',exact:true}).waitFor();
+  await dialog.getByRole('button',{name:'Git 下載 從儲存庫下載',exact:true}).click();await dialog.getByLabel('Git 網址',{exact:true}).fill('https://example.test/frontend.git');await dialog.getByLabel('下載資料夾',{exact:true}).fill(join(f.root,'cloned-source'));await dialog.getByRole('button',{name:'下載並繼續',exact:true}).click();await dialog.getByRole('heading',{name:'測試專案放置位置',exact:true}).waitFor();await page.reload();await dialog.getByRole('heading',{name:'AI CLI 設定',exact:true}).waitFor();await dialog.getByRole('button',{name:'下一步',exact:true}).click();await dialog.getByRole('heading',{name:'前端架構分析',exact:true}).waitFor();
   assert.equal(await page.getByRole('navigation',{name:'主要功能'}).count(),0);await page.keyboard.press('Escape');
   await dialog.getByRole('button',{name:'Git 下載 從儲存庫下載',exact:true}).click();
   assert.equal(sourcePickCalls, 0);
@@ -49,6 +60,15 @@ try {
   assert.equal(await dialog.getByLabel('前端專案路徑').inputValue(), f.source);
   await dialog.getByLabel('前端專案路徑').fill('');
   await dialog.getByRole('button',{name:'本機資料夾 讀取電腦中的程式碼',exact:true}).click();
+  await dialog.getByLabel('前端專案路徑').evaluate((el, expected) => new Promise((resolve, reject) => {
+    const start = Date.now();
+    const check = () => {
+      if (el.value === expected) return resolve();
+      if (Date.now() - start > 3000) return reject(new Error('inputValue timeout: ' + el.value));
+      setTimeout(check, 20);
+    };
+    check();
+  }), f.source);
   assert.equal(sourcePickCalls, 2);
   assert.equal(await dialog.getByLabel('前端專案路徑').inputValue(), f.source);
   assert.equal(await dialog.getByRole('button', { name: '選擇前端專案', exact: true }).count(), 0);
@@ -90,7 +110,7 @@ try {
   await dialog.getByText('已匯入 3 份知識', { exact: true }).waitFor();
   assert.equal(await dialog.getByRole('region', { name: 'AI 分析狀態' }).count(), 0);
   assert.equal(await dialog.getByText('正在整理知識…').count(), 0);
-  await page.reload();await dialog.getByRole('heading',{name:'上傳 PRD、業務流程文件',exact:true}).waitFor();assert.equal(await page.getByRole('navigation',{name:'主要功能'}).count(),0);await dialog.getByRole('button',{name:'完成設定',exact:true}).click();await page.getByRole('heading',{name:'API測試腳本',exact:true}).waitFor();await page.getByRole('button',{name:'專案知識',exact:true}).click();
+  await page.reload();await dialog.getByRole('heading',{name:'上傳 PRD、業務流程文件',exact:true}).waitFor();assert.equal(await page.getByRole('navigation',{name:'主要功能'}).count(),0);await dialog.getByRole('button',{name:'完成設定',exact:true}).click();await page.getByRole('heading',{name:'API測試腳本',exact:true}).waitFor();await page.getByText('AI：Codex · o4-mini',{exact:true}).waitFor();await page.getByRole('button',{name:'專案知識',exact:true}).click();
   await page.getByRole('heading', { name: '已匯入知識（3）' }).waitFor();
   await page.getByRole('button', { name: '參考.txt', exact: true }).click();
   await page.getByLabel('知識內容', { exact: true }).getByText('<script>window.injected=true</script>', { exact: true }).waitFor();

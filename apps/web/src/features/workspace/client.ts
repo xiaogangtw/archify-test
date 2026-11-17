@@ -1,4 +1,45 @@
-export interface LocalConfig { sourceRoot: string; projectRoot: string; analysisDir: string; apiDir: string; reportDir: string; configured: boolean; initialized: boolean; session: string; onboardingCompleted?: boolean; knowledgeCount?: number }
+export type AiProviderId = 'codex' | 'claude' | 'gemini';
+export interface AiModelOption {
+  value: string;
+  label: string;
+}
+export interface AiConfigSummary {
+  provider: AiProviderId;
+  providerLabel: string;
+  supportsImages: boolean;
+  cliConfigured: string;
+  cliResolved: string;
+  installed: boolean;
+  model: string;
+  providerSource: 'env' | 'project' | 'platform' | 'local' | 'default';
+  cliSource: 'env' | 'project' | 'platform' | 'local' | 'default';
+  modelSource: 'env' | 'project' | 'platform' | 'local' | 'default';
+}
+export interface AiProviderInspect {
+  provider: AiProviderId;
+  label: string;
+  supportsImages: boolean;
+  cliConfigured: string;
+  cliResolved: string;
+  installed: boolean;
+  version: string;
+  loggedIn: boolean | null;
+  loginSummary: string;
+  models: AiModelOption[];
+}
+export interface AiInspectResult extends AiProviderInspect {
+  providers: Record<string, AiProviderInspect>;
+}
+export interface AiTestResult {
+  ok: boolean;
+  model: string;
+  provider: AiProviderId;
+  label: string;
+  cliConfigured: string;
+  cliResolved: string;
+  installed: boolean;
+}
+export interface LocalConfig { sourceRoot: string; projectRoot: string; analysisDir: string; apiDir: string; reportDir: string; configured: boolean; initialized: boolean; session: string; onboardingCompleted?: boolean; knowledgeCount?: number; ai?: AiConfigSummary }
 export interface KnowledgeSource { name: string; sha256: string; path: string; bytes: number; mediaType: string; kind: 'image' | 'text' }
 export interface KnowledgeDocument { id: string; title: string; format: string; size: number; createdAt: string; content?: string; hash?: string; category?: string; featureIds?: string[]; revision?: string; sources?: KnowledgeSource[] }
 export interface KnowledgeIndex { documents: KnowledgeDocument[]; onboardingCompleted: boolean; directory: string; entry: string; lastAiUpdate?: { at: string; archive: string; conflicts: string[] } }

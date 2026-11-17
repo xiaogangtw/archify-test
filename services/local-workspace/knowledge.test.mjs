@@ -150,3 +150,33 @@ test('重開資料夾選擇器或瀏覽器中斷連線時中止舊視窗，不�
     assert.deepEqual(JSON.parse(ended), { path: '', cancelled: true });
   } finally { await f.dispose(); }
 });
+
+test('第一步預先設定 AI CLI 會保存在 .local/ai.json，選定專案後同步至 .env 且不改 workspace.json', async () => {
+  const f = await fixture();
+  try {
+    const cleanConfig = await loadConfig(f.platform, {});
+    const w = createWorkspace(cleanConfig);
+    const savedBefore = await w.saveAiSettings({ aiProvider: 'claude', aiCli: '', aiModel: 'sonnet' });
+    assert.equal(savedBefore.ai.provider, 'claude');
+    assert.equal(savedBefore.ai.providerLabel, 'Claude Code');
+    assert.equal(savedBefore.ai.supportsImages, false);
+    assert.equal(savedBefore.ai.model, 'sonnet');
+    const aiLocal = JSON.parse(await readFile(join(f.platform, '.local/ai.json'), 'utf8'));
+    assert.equal(aiLocal.aiProvider, 'claude');
+    assert.equal(aiLocal.aiModel, 'sonnet');
+    await w.setup({ sourceRoot: f.source, projectRoot: f.project });
+    assert.deepEqual(Object.keys(JSON.parse(await readFile(join(f.platform, '.local/workspace.json'), 'utf8'))), ['projectRoot']);
+    const projectEnv = parseEnv(await readFile(join(f.project, '.env'), 'utf8'));
+    assert.equal(projectEnv.ARCHIFY_AI_PROVIDER, 'claude');
+    assert.equal(projectEnv.ARCHIFY_AI_MODEL, 'sonnet');
+    const reloaded = await loadConfig(f.platform, {});
+    assert.equal(reloaded.aiProvider, 'claude');
+    assert.equal(reloaded.aiModel, 'sonnet');
+    const updated = await createWorkspace(reloaded).saveAiSettings({ aiProvider: 'codex', aiCli: '', aiModel: 'synthetic-updated-model' });
+    assert.equal(updated.ai.provider, 'codex');
+    assert.equal(updated.ai.model, 'synthetic-updated-model');
+    const afterEnv = parseEnv(await readFile(join(f.project, '.env'), 'utf8'));
+    assert.equal(afterEnv.ARCHIFY_AI_PROVIDER, 'codex');
+    assert.equal(afterEnv.ARCHIFY_AI_MODEL, 'synthetic-updated-model');
+  } finally { await f.dispose(); }
+});

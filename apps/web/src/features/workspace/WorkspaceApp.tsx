@@ -10,6 +10,7 @@ import { settings } from './client';
 import type { LocalConfig } from './client';
 import { ActionButton, WorkspaceIcon, cx } from '../../components/ui/ds';
 import type { WorkspaceIconName } from '../../components/ui/ds';
+import { WorkspaceToast } from './WorkspaceToast';
 
 const navItems: readonly { id: string; label: string; icon: WorkspaceIconName }[] = [
   { id: 'analysis', label: '前端程式碼分析', icon: 'analysis' },
@@ -93,6 +94,14 @@ export function WorkspaceApp() {
         })}
       </div>
       <div className="space-y-2 border-t border-line pt-3">
+        {config?.ai && (
+          <p
+            className="truncate px-2.5 text-body text-muted"
+            title={config.ai.cliResolved}
+          >
+            {`AI：${config.ai.providerLabel || 'Codex'} · ${config.ai.model || '預設模型'}`}
+          </p>
+        )}
         <button
           type="button"
           data-workspace-setup
@@ -102,11 +111,9 @@ export function WorkspaceApp() {
           <WorkspaceIcon name="settings" />
           <span>工作區設定</span>
         </button>
-        {error && (
-          <p role="alert" className="px-2.5 text-danger">
-            {error}
-          </p>
-        )}
+        <WorkspaceToast open={!!error} tone="danger" role="alert" onDismiss={() => setError('')}>
+          {error}
+        </WorkspaceToast>
       </div>
     </nav>
   );
@@ -135,8 +142,18 @@ export function WorkspaceApp() {
       <SetupWizard
         initial={config}
         required={!config.configured || !config.initialized || !config.onboardingCompleted}
+        onSavedAi={value => {
+          setConfig(value);
+          setRevision(v => v + 1);
+        }}
         onDismiss={() => {
           setSetup(false);
+          void settings()
+            .then(value => {
+              setConfig(value);
+              setRevision(v => v + 1);
+            })
+            .catch(() => {});
           requestAnimationFrame(() =>
             document.querySelector<HTMLButtonElement>('[data-workspace-setup]')?.focus(),
           );

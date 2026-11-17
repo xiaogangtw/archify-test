@@ -198,17 +198,17 @@ npm run android:test
 
 ## 網站 AI 最新授權
 
-依使用者 2026-11-08 明確要求，網站可發起受控本機 Codex 功能／知識分析；此項取代前述不提供模型／Agent 的限制，但只限分析 JSON 結果，不恢復聊天 Agent、VM、Git 或產品腳本執行控制。MD／HTML 知識經 AI 語意去重與更新，取代原檔保留封存、版本檢查及還原，衝突不自行定為業務事實。詳見 docs/website-ai-analysis.md。
+依使用者 2026-11-08 與 2026-11-11 明確要求，網站可發起受控本機 AI CLI（支援 `codex`／`claude`／`gemini`，圖片知識辨識僅限 `codex`）功能／知識分析；此項取代前述不提供模型／Agent 的限制，但只限分析 JSON 結果，不恢復聊天 Agent、VM、Git 或產品腳本執行控制。MD／HTML 知識經 AI 語意去重與更新，取代原檔保留封存、版本檢查及還原，衝突不自行定為業務事實。詳見 docs/website-ai-analysis.md。
 
 ## 本機畫面環境最新授權
 
 依使用者 2026-11-08 明確要求，網站可受控啟動既有本機 Android AVD／Appium、選擇裝置與保存截圖選項；這只取代原入口不提供本機環境啟動的限制，不恢復 VM、舊 Control API、聊天 Agent 或產品腳本執行。一般畫面走前端 npm run dev 與 Playwright，只有推播原生畫面走 Appium；報告固定 reportDir/api／ui，支援單檔HTML（內嵌結構與圖片），純文字按需下載，舊JSON保留相容。使用者要求本輪不開啟 LINE、不擷取實際手機畫面、不發推播，產品驗收之後再做。詳見 docs/ui-testing-reports.md。
 
 ## 初始設定 Git 授權補充
-依使用者最新要求，初始設定允許受控 clone 前端來源，此為前述不提供 Git 連線的限縮例外；僅下載到新本機資料夾，不提供 push／pull／憑證保存。三步設定未完成不掛載產品頁；第三步僅 PRD／業務流程文件上傳，不放文字輸入或略過。詳見 docs/decisions/2026-11-08-onboarding-clone.md。
+依使用者最新要求，初始設定允許受控 clone 前端來源，此為前述不提供 Git 連線的限縮例外；僅下載到新本機資料夾，不提供 push／pull／憑證保存。現行首次引導為四步（1. AI CLI → 2. 前端來源 → 3. 測試專案 → 4. 專案知識），四步設定未完成不掛載產品頁；第四步僅 PRD／業務流程文件上傳，不放文字輸入或略過。詳見 docs/decisions/2026-11-08-onboarding-clone.md 與 docs/decisions/2026-11-11-cli-setup-and-ai-toast.md。
 
 ## 本機設定保存補充
-依使用者 2026-11-09 要求，來源路徑與現行環境設定保存測試專案 .env；初始化及重新連接都須補齊 .gitignore，排除 .env 與 .env.*，僅保留無秘密的 .env.example。平台僅保存排除 Git 的 projectRoot 定位，不存來源路徑或產品認證。舊平台設定成功保存後遷移，既有專案值優先保留；不自動取消 Git 已追蹤檔案。
+依使用者 2026-11-09 與 2026-11-11 要求，來源路徑與現行環境設定保存測試專案 .env；初始化及重新連接都須補齊 .gitignore，排除 .env 與 .env.*，僅保留無秘密的 .env.example。平台 .local/workspace.json 僅保存排除 Git 的 projectRoot 定位，另以排除 Git 的 .local/ai.json 保存選用非秘密 AI CLI 種類（`aiProvider`）、路徑（`aiCli`）與模型偏好（`aiModel`）（選定或更新測試專案時同步寫入 .env，不存任何產品認證或 API key）。舊平台設定成功保存後遷移，既有專案值優先保留；不自動取消 Git 已追蹤檔案。
 
 ## 固定逐操作畫面證據
 

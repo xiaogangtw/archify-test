@@ -1,21 +1,31 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { operation, settings } from './client';
 import type { LocalConfig } from './client';
 import { CaseEditor } from './CaseEditor';
 import { FeatureMap } from './FeatureMap';
 import { GapReport } from './GapReport';
+import { CaseTrackingTable } from './CaseTrackingTable';
 import { MapDetails } from './MapDetails';
-import { featureCoverage, featureGraph } from './feature-graph';
-import type { MapNode } from './feature-graph';
-import type { CatalogView, TestIntent, Feature } from './catalog';
-import { resultLabels, organizeFeaturesTask, featureTestDraftHandoff } from './catalog';
+import { FeatureReader } from './FeatureReader';
+import {
+  directChildFeatures,
+  featureAncestors,
+  featureGraph,
+  featureTreeCoverage,
+  orderedFeatureTree,
+  singleSystemRootFeature,
+  subtreeFeatureIds,
+} from './feature-graph';
+import type { MapNode, TreeCoverageMetrics } from './feature-graph';
+import type { CaseView, CatalogView, TestIntent, Feature } from './catalog';
+import { organizeFeaturesTask, featureTestDraftHandoff } from './catalog';
 import { useAiJob } from './useAiJob';
 import { AiJobStatus } from './AiJobStatus';
+import { WorkspaceToast } from './WorkspaceToast';
 import {
   ActionButton,
   Badge,
-  Banner,
   Disclosure,
   EmptyState,
   PageHeader,
@@ -24,6 +34,7 @@ import {
   StatStrip,
   StatusDot,
   Surface,
+  WorkspaceIcon,
   WorkspaceShell,
   cx,
 } from '../../components/ui/ds';
@@ -36,10 +47,26 @@ const covDotTone: Record<'full' | 'partial' | 'none' | 'retired', Tone> = {
   retired: 'neutral',
 };
 
+const collapsedStorageKey = (projectRoot?: string) =>
+  projectRoot ? `archify.catalog.collapsed.v1:${projectRoot}` : 'archify.catalog.collapsed.v1';
+
+function readCollapsedFeatures(key: string): string[] {
+  try {
+    const raw: unknown = JSON.parse(localStorage.getItem(key) || '[]');
+    return Array.isArray(raw) ? raw.filter((item): item is string => typeof item === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
 export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
   const [config, setConfig] = useState<LocalConfig>();
   const [view, setView] = useState<CatalogView>();
   const [featureId, setFeatureId] = useState('overview');
+  const [readingFeatureId, setReadingFeatureId] = useState<string>();
+  const readingOrigin = useRef<HTMLElement | SVGElement | null>(null);
+  const [readingCaseId, setReadingCaseId] = useState<string>();
+  const [readerInitialTab, setReaderInitialTab] = useState<'api' | 'cases'>('api');
   const [selected, setSelected] = useState<MapNode>();
   const [editor, setEditor] = useState<TestIntent>();
   const [layer, setLayer] = useState<'product' | 'tests'>('product');
@@ -49,8 +76,11 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [code, setCode] = useState<{ path: string; content: string }>();
+  const [collapsedIds, setCollapsedIds] = useState<string[]>(() =>
+    readCollapsedFeatures(collapsedStorageKey()),
+  );
 
-  const ai = useAiJob(config);
+  const ai = useAiJob(config, 'features');
 
   useEffect(() => {
     if (ai.job?.kind === 'features' && ai.job.status === 'completed') void reload();
@@ -64,11 +94,15 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
     try {
       const value = await settings();
       setConfig(value);
+      setCollapsedIds(readCollapsedFeatures(collapsedStorageKey(value.projectRoot)));
       if (value.initialized) {
         const next = await operation<CatalogView>(value, 'catalog');
+        const nextSystemRoot = singleSystemRootFeature(next.catalog, next.cases);
         setView(next);
         setFeatureId(previous =>
-          previous === 'overview' || next.catalog.features.some(feature => feature.id === previous)
+          previous === 'overview' ||
+          (nextSystemRoot?.id !== previous &&
+            next.catalog.features.some(feature => feature.id === previous))
             ? previous
             : 'overview',
         );
@@ -84,17 +118,80 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
     void reload();
   }, []);
 
-  const cases =
-    view?.cases.filter(row => featureId === 'overview' || row.featureId === featureId) || [];
-  const features =
-    view?.catalog.features.filter(feature =>
-      `${feature.name} ${view.cases
-        .filter(row => row.featureId === feature.id)
-        .map(row => row.title)
-        .join(' ')}`
+  const systemRoot = useMemo(
+    () => (view ? singleSystemRootFeature(view.catalog, view.cases) : undefined),
+    [view],
+  );
+  const coverageCache = useMemo(() => new Map<string, TreeCoverageMetrics>(), [view]);
+  const treeFeatures = useMemo(
+    () => (view ? orderedFeatureTree(view.catalog.features, systemRoot?.id) : []),
+    [view, systemRoot?.id],
+  );
+  const features = useMemo(() => {
+    const trimmed = query.trim().toLowerCase();
+    if (!trimmed) return treeFeatures;
+    return treeFeatures.filter(({ feature }) =>
+      `${feature.name} ${
+        view?.cases
+          .filter(row => row.featureId === feature.id)
+          .map(row => row.title)
+          .join(' ') || ''
+      }`
         .toLowerCase()
-        .includes(query.toLowerCase()),
-    ) || [];
+        .includes(trimmed),
+    );
+  }, [treeFeatures, view, query]);
+  const collapsedSet = useMemo(() => new Set(collapsedIds), [collapsedIds]);
+  const visibleFeatures = useMemo(() => {
+    if (!view || query.trim()) return features;
+    return features.filter(
+      ({ feature }) =>
+        !featureAncestors(view.catalog.features, feature.id, systemRoot?.id).some(ancestor =>
+          collapsedSet.has(ancestor.id),
+        ),
+    );
+  }, [features, view, query, systemRoot?.id, collapsedSet]);
+
+  function toggleCollapsed(id: string) {
+    const key = collapsedStorageKey(config?.projectRoot);
+    setCollapsedIds(previous => {
+      const next = previous.includes(id)
+        ? previous.filter(item => item !== id)
+        : [...previous, id];
+      try {
+        localStorage.setItem(key, JSON.stringify(next));
+      } catch {
+        // Ignore storage write failures cleanly.
+      }
+      return next;
+    });
+  }
+  const subtreeIds = useMemo(
+    () =>
+      view && featureId !== 'overview'
+        ? subtreeFeatureIds(view.catalog.features, featureId)
+        : undefined,
+    [view, featureId],
+  );
+  const cases =
+    view?.cases.filter(row => featureId === 'overview' || subtreeIds?.has(row.featureId)) || [];
+
+  function navigateFeature(nextId: string) {
+    const feature = view?.catalog.features.find(item => item.id === nextId);
+    if (feature && !view?.catalog.features.some(item => item.frontend?.parentId === nextId)) {
+      if (!readingFeatureId) readingOrigin.current = document.activeElement as HTMLElement | SVGElement;
+      setReadingFeatureId(nextId);
+      setReaderInitialTab('api');
+      setReadingCaseId(undefined);
+      setCode(undefined);
+      return;
+    }
+    setReadingFeatureId(undefined);
+    setReadingCaseId(undefined);
+    setFeatureId(nextId);
+    setSelected(undefined);
+    setCode(undefined);
+  }
 
   async function readCode(scope: string, path: string) {
     if (!config) return;
@@ -110,9 +207,15 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
   }
 
   function select(node?: MapNode) {
-    if (featureId === 'overview' && node?.featureId) {
-      setFeatureId(node.featureId);
-      setSelected(undefined);
+    if (node?.kind === 'feature' && node.featureId) {
+      navigateFeature(node.featureId);
+      return;
+    }
+    if (node?.caseId && node.featureId) {
+      readingOrigin.current = document.activeElement as HTMLElement | SVGElement;
+      setReadingFeatureId(node.featureId);
+      setReadingCaseId(node.caseId);
+      setReaderInitialTab('cases');
       setCode(undefined);
       return;
     }
@@ -128,10 +231,13 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
     if (!view) return;
     const match = view.cases.find(row => row.id === id);
     if (!match) return;
-    setFeatureId(match.featureId);
-    setLayer('tests');
+    if (mode === 'map') {
+      setFeatureId(match.featureId);
+      setLayer('tests');
+    }
+    readingOrigin.current = document.activeElement as HTMLElement | SVGElement;
     setSelected(
-      featureGraph(view, match.featureId).nodes.find(
+      featureGraph(view, match.featureId, 'tests').nodes.find(
         node => node.kind === 'case' && node.caseId === id,
       ),
     );
@@ -142,7 +248,9 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
     const id = selected?.id;
     setSelected(undefined);
     setCode(undefined);
-    if (id) {
+    if (mode === 'list') {
+      requestAnimationFrame(() => readingOrigin.current?.focus());
+    } else if (id) {
       requestAnimationFrame(() =>
         document.querySelector<SVGElement>(`[data-map-node="${CSS.escape(id)}"]`)?.focus(),
       );
@@ -151,12 +259,13 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
 
   function add(script = '', newFeature = false) {
     const declared = view?.scripts.find(row => row.path === script)?.caseIds[0];
+    const targetFeatureId = readingFeatureId || featureId;
     setEditor({
       id: declared || 'TC-' + crypto.randomUUID().slice(0, 8),
       featureId:
-        newFeature || !featureId || featureId === 'overview'
+        newFeature || !targetFeatureId || targetFeatureId === 'overview'
           ? 'F-' + crypto.randomUUID().slice(0, 8)
-          : featureId,
+          : targetFeatureId,
       title: '',
       kind: script.includes('/flows/') ? 'flow' : 'api',
       purpose: '',
@@ -196,7 +305,8 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
       await operation(config, 'catalog-save', { revision: view.revision, catalog });
       const next = await operation<CatalogView>(config, 'catalog');
       setView(next);
-      setFeatureId(record.featureId);
+      if (!readingFeatureId) setFeatureId(record.featureId);
+      else setReaderInitialTab('cases');
       setEditor(undefined);
       setMode('map');
       setLayer('tests');
@@ -240,13 +350,25 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
     featureId !== 'overview'
       ? view?.catalog.features.find(item => item.id === featureId)
       : undefined;
-  const currentCoverage = currentFeature ? featureCoverage(cases, currentFeature) : undefined;
+  const currentChildren =
+    view && currentFeature ? directChildFeatures(view.catalog.features, currentFeature.id) : [];
+  const currentCoverage =
+    view && currentFeature ? featureTreeCoverage(currentFeature.id, view, coverageCache) : undefined;
   const fa = view?.catalog.frontendAnalysis;
+  const readingFeature = view?.catalog.features.find(item => item.id === readingFeatureId);
+
 
   return (
     <WorkspaceShell navigation={navigation} wide>
       <PageHeader
         title="功能地圖"
+        meta={
+          config?.ai && (
+            <span className="text-muted">
+              {`目前 AI：${config.ai.providerLabel || 'Codex'} · ${config.ai.model || '預設模型'}`}
+            </span>
+          )
+        }
         actions={
           <>
             <ActionButton
@@ -266,36 +388,45 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
             >
               {busy ? '正在讀取…' : '重新讀取'}
             </ActionButton>
-            <ActionButton
+            {!readingFeature && <ActionButton
               icon="plus"
               disabled={busy || !view || !!editor || ai.running}
               onClick={() => add()}
             >
               新增測試
-            </ActionButton>
+            </ActionButton>}
           </>
         }
       />
 
-      <AiJobStatus job={ai.job} error={ai.error} onCancel={() => void ai.cancel()} />
+      <AiJobStatus
+        job={ai.job?.kind === 'features' ? ai.job : undefined}
+        error={ai.error}
+        onCancel={() => void ai.cancel()}
+        onDismiss={ai.dismiss}
+      />
 
-      {error && (
-        <Banner tone="danger" className="mb-4">
-          {error}
-        </Banner>
-      )}
-      {notice && (
-        <Banner tone="neutral" className="mb-4">
-          {notice}
-        </Banner>
-      )}
+      <WorkspaceToast
+        open={!!error || !!notice}
+        tone={error ? 'danger' : 'neutral'}
+        role={error ? 'alert' : 'status'}
+        onDismiss={() => {
+          setError('');
+          setNotice('');
+        }}
+      >
+        {error || notice}
+      </WorkspaceToast>
       {config && !config.initialized && (
         <EmptyState icon="settings" title="請先開啟「工作區設定」。" />
       )}
 
       {view && (
         <div className="grid min-w-0 gap-5 lg:grid-cols-map-browser">
-          <section className="min-w-0 space-y-3 lg:border-r lg:border-line lg:pr-4" aria-label="功能選擇">
+          <section
+            className="min-w-0 space-y-3 lg:sticky lg:top-0 lg:self-start lg:border-r lg:border-line lg:pr-4"
+            aria-label="功能選擇"
+          >
             <SearchField
               label="搜尋功能"
               placeholder="搜尋功能"
@@ -304,70 +435,153 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
               onChange={event => setQuery(event.target.value)}
             />
 
-            <div className="space-y-1">
+            <div className="min-h-0 max-h-96 space-y-1 overflow-y-auto overscroll-contain lg:max-h-[max(18rem,calc(100dvh-20rem))] lg:pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <ActionButton
                 variant="ghost"
                 align="start"
                 disabled={!!editor}
-                aria-pressed={featureId === 'overview'}
-                onClick={() => {
-                  setFeatureId('overview');
-                  select();
-                }}
+                aria-pressed={!readingFeatureId && featureId === 'overview'}
+                onClick={() => navigateFeature('overview')}
                 className={cx(
                   'w-full',
-                  featureId === 'overview' && 'bg-surface-active font-medium text-ink',
+                  !readingFeatureId && featureId === 'overview' && 'bg-surface-active font-medium text-ink',
                 )}
               >
                 全部功能
               </ActionButton>
 
-              <ul className="space-y-1">
-                {features.map(feature => {
-                  const cov = featureCoverage(
-                    view.cases.filter(row => row.featureId === feature.id),
-                    feature,
-                  );
-                  const active = feature.id === featureId;
-                  return (
-                    <li key={feature.id}>
-                      <ActionButton
-                        variant="ghost"
-                        align="between"
-                        disabled={!!editor}
-                        aria-pressed={active}
-                        onClick={() => {
-                          setFeatureId(feature.id);
-                          select();
-                        }}
-                        className={cx(
-                          'w-full',
-                          active && 'bg-surface-active font-medium text-ink',
-                        )}
-                      >
+                <ul className="space-y-1">
+                  {visibleFeatures.map(({ feature, depth }, index) => {
+                    const cov = featureTreeCoverage(feature.id, view, coverageCache);
+                    const active = feature.id === (readingFeatureId || featureId);
+                    const topGroup = !query.trim() && depth === 0 && cov.isGroup;
+                    const subGroup = cov.isGroup && !topGroup;
+                    const collapsed = !query.trim() && collapsedSet.has(feature.id);
+                    const indentClass =
+                      !query.trim() &&
+                      (cov.isGroup
+                        ? depth === 1
+                          ? 'pl-3'
+                          : depth >= 2
+                            ? 'pl-6'
+                            : undefined
+                        : depth === 1
+                          ? 'pl-5'
+                          : depth === 2
+                            ? 'pl-9'
+                            : depth >= 3
+                              ? 'pl-11'
+                              : undefined);
+                    const itemContent = (
+                      <>
                         <span className="flex min-w-0 items-center gap-2">
-                          <StatusDot tone={covDotTone[cov.coverage]} />
+                          {cov.coverage === 'retired' ? (
+                            <StatusDot tone="neutral" />
+                          ) : topGroup ? (
+                            <WorkspaceIcon name="folder" className="h-4 w-4 text-muted" />
+                          ) : subGroup ? null : cov.coverage === 'full' ||
+                            cov.coverage === 'partial' ? (
+                            <StatusDot tone={covDotTone[cov.coverage]} />
+                          ) : (
+                            <span
+                              aria-hidden="true"
+                              className="inline-block h-2 w-2 shrink-0 rounded-full border border-line-strong"
+                            />
+                          )}
                           <span
                             className={cx(
                               'min-w-0 break-words',
-                              cov.coverage === 'retired' && 'text-muted line-through',
+                              cov.coverage === 'retired'
+                                ? 'text-muted line-through'
+                                : topGroup
+                                  ? 'font-medium text-ink'
+                                  : subGroup
+                                    ? active
+                                      ? 'font-medium text-ink'
+                                      : 'font-medium text-muted'
+                                    : 'text-ink',
                             )}
                           >
                             {feature.name}
                           </span>
                         </span>
-                        <span className="shrink-0 tabular-nums text-muted">
-                          {cov.coverage === 'retired' ? `廢棄 ${cov.caseCount}` : cov.caseCount}
-                        </span>
-                      </ActionButton>
-                    </li>
-                  );
-                })}
-              </ul>
+                        {cov.coverage === 'retired' ? (
+                          <span className="shrink-0 tabular-nums text-muted">
+                            {cov.caseCount > 0 ? `廢棄 ${cov.caseCount}` : '廢棄'}
+                          </span>
+                        ) : cov.caseCount > 0 ? (
+                          <span className="inline-flex shrink-0 items-center gap-1.5 tabular-nums text-muted">
+                            {cov.isGroup && <StatusDot tone={covDotTone[cov.coverage]} />}
+                            {cov.caseCount}
+                          </span>
+                        ) : null}
+                      </>
+                    );
+                    return (
+                      <li
+                        key={feature.id}
+                        className={cx(
+                          index > 0 && topGroup && 'mt-2 border-t border-line pt-2',
+                          indentClass,
+                        )}
+                      >
+                        {cov.isGroup && !query.trim() ? (
+                          <div className="flex items-center gap-0.5">
+                            <button
+                              type="button"
+                              disabled={!!editor}
+                              aria-expanded={!collapsed}
+                              aria-label={`${feature.name} 分類`}
+                              onClick={() => toggleCollapsed(feature.id)}
+                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-surface-subtle hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand active:bg-brand-soft disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none"
+                            >
+                              <WorkspaceIcon
+                                name="chevron"
+                                className={cx(
+                                  'h-4 w-4 transition-transform motion-reduce:transition-none',
+                                  !collapsed && 'rotate-90',
+                                )}
+                              />
+                            </button>
+                            <ActionButton
+                              variant="ghost"
+                              align="between"
+                              disabled={!!editor}
+                              aria-pressed={active}
+                              onClick={() => navigateFeature(feature.id)}
+                              className={cx(
+                                'min-w-0 flex-1',
+                                active && 'bg-surface-active font-medium text-ink',
+                              )}
+                            >
+                              {itemContent}
+                            </ActionButton>
+                          </div>
+                        ) : (
+                          <ActionButton
+                            variant="ghost"
+                            align="between"
+                            disabled={!!editor}
+                            aria-pressed={active}
+                            onClick={() => navigateFeature(feature.id)}
+                            className={cx(
+                              'w-full',
+                              active && 'bg-surface-active font-medium text-ink',
+                            )}
+                          >
+                            {itemContent}
+                          </ActionButton>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
 
-              {!features.length && (
-                <p className="px-3 py-4 text-muted">{query ? '沒有符合的功能。' : '尚未整理功能。'}</p>
-              )}
+                {!visibleFeatures.length && (
+                  <p className="px-3 py-4 text-muted">
+                    {query ? '沒有符合的功能。' : '尚未整理功能。'}
+                  </p>
+                )}
 
               <ActionButton
                 variant="ghost"
@@ -381,67 +595,37 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
               </ActionButton>
             </div>
 
-            <Disclosure summary="手動分析工具" className="bg-surface-subtle">
-              <div className="space-y-2.5">
-                <ActionButton
-                  className="w-full"
-                  disabled={busy || !!editor}
-                  onClick={() => void prepare('frontend-features-prepare')}
-                >
-                  準備分析資料
-                </ActionButton>
-                <ActionButton
-                  className="w-full"
-                  disabled={busy || !!editor || !view.frontendPreparation?.proposal}
-                  onClick={() => void prepare('frontend-features-apply')}
-                >
-                  載入 AI 結果
-                </ActionButton>
-                <ActionButton
-                  icon="copy"
-                  className="w-full"
-                  onClick={() => void copy(organizeFeaturesTask)}
-                >
-                  複製整理任務
-                </ActionButton>
-                <textarea
-                  aria-label="功能整理任務"
-                  readOnly
-                  rows={5}
-                  className="w-full resize-y rounded-lg border border-line-strong bg-canvas p-2.5 font-mono text-body text-ink"
-                  value={organizeFeaturesTask}
-                />
-              </div>
-            </Disclosure>
-
-            <Disclosure
-              summary={`尚未分類（${view.unlinkedScripts.length}）`}
-              className="bg-surface-subtle"
-            >
-              {view.unlinkedScripts.length > 0 ? (
-                <ul className="max-h-72 space-y-1 overflow-y-auto">
-                  {view.unlinkedScripts.map(path => (
-                    <li key={path}>
-                      <ActionButton
-                        variant="ghost"
-                        align="start"
-                        className="w-full break-all"
-                        disabled={busy || !!editor}
-                        onClick={() => add(path)}
-                      >
-                        {path.replace(/^tests\/(api|flows)\//, '').replace(/\.spec\.ts$/, '')}
-                      </ActionButton>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-muted">全部腳本皆已分類。</p>
-              )}
-            </Disclosure>
+            {!readingFeature && view.unlinkedScripts.length > 0 && (
+              <Disclosure
+                summary={`尚未分類（${view.unlinkedScripts.length}）`}
+                className="bg-surface-subtle"
+              >
+                <div className="space-y-2">
+                  <p className="text-muted">
+                    以下測試檔尚未連到功能地圖，點選即可建立案例並歸入目前功能：
+                  </p>
+                  <ul className="max-h-72 space-y-1 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {view.unlinkedScripts.map(path => (
+                      <li key={path}>
+                        <ActionButton
+                          variant="ghost"
+                          align="start"
+                          className="w-full break-all"
+                          disabled={busy || !!editor}
+                          onClick={() => add(path)}
+                        >
+                          {path.replace(/^tests\/(api|flows)\//, '').replace(/\.spec\.ts$/, '')}
+                        </ActionButton>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </Disclosure>
+            )}
           </section>
 
           <div className="min-w-0 space-y-4">
-            {featureId === 'overview' && fa && !editor && (
+            {featureId === 'overview' && fa && !editor && !readingFeature && (
               <StatStrip
                 items={[
                   { label: '識別功能', value: fa.coverage.features },
@@ -475,13 +659,36 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
               </Surface>
             ) : (
               <>
+                {readingFeature && <>
+                  <div hidden={!!readingCaseId}><FeatureReader initialTab={readerInitialTab} key={readingFeature.id} feature={readingFeature} view={view} busy={busy} code={code} onBack={() => { setReadingFeatureId(undefined); setCode(undefined); requestAnimationFrame(() => readingOrigin.current?.focus()); }} onNavigate={navigateFeature} onCode={(scope,path) => void readCode(scope,path)} onCase={setReadingCaseId} onAddCase={() => add()} /></div>
+                  {readingCaseId && <div className="space-y-3">
+                  <ActionButton onClick={() => { setReadingCaseId(undefined); setCode(undefined); }}>返回測試案例</ActionButton>
+                  <MapDetails node={{ id: 'case:' + readingCaseId, kind: 'case', caseId: readingCaseId, featureId: readingFeature.id, label: view.cases.find(row => row.id === readingCaseId)?.title || '測試案例', x: 0, y: 0 }} featureId={readingFeature.id} view={view} busy={busy} code={code} onClose={() => { setReadingCaseId(undefined); setCode(undefined); }} onEdit={id => setEditor(view.catalog.cases.find(row => row.id === id))} onCode={(scope,path) => void readCode(scope,path)} onCase={setReadingCaseId} onFeature={navigateFeature} onCopy={text => void copy(text)} />
+                </div>}
+                </>}
+                <div hidden={!!readingFeature} className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <SegmentedGroup
                     label="顯示方式"
                     value={mode}
                     onChange={value => {
                       setMode(value);
-                      select();
+                      if (value === 'gaps') {
+                        select();
+                        return;
+                      }
+                      if (value === 'map' && selected?.caseId && view) {
+                        const match = view.cases.find(row => row.id === selected.caseId);
+                        if (match) {
+                          setFeatureId(match.featureId);
+                          setLayer('tests');
+                          setSelected(
+                            featureGraph(view, match.featureId, 'tests').nodes.find(
+                              node => node.kind === 'case' && node.caseId === match.id,
+                            ),
+                          );
+                        }
+                      }
                     }}
                     options={[
                       { id: 'map', label: '地圖' },
@@ -505,6 +712,7 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
                         ]}
                       />
                       {currentCoverage &&
+                        !currentChildren.length &&
                         currentCoverage.coverage !== 'full' &&
                         currentCoverage.coverage !== 'retired' && (
                           <ActionButton
@@ -562,11 +770,10 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
                   <div
                     className={cx(
                       'grid min-w-0 gap-4',
-                      selected && 'map-wide:grid-cols-map-detail',
                     )}
                   >
                     {mode === 'map' ? (
-                      <div className="min-w-0">
+                      <div hidden={!!selected} className="min-w-0">
                         <FeatureMap
                           key={featureId + layer}
                           layer={layer}
@@ -574,66 +781,12 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
                           featureId={featureId}
                           selected={selected?.id}
                           onSelect={select}
+                          onNavigateFeature={navigateFeature}
                           disabled={busy}
                         />
                       </div>
                     ) : (
-                      <Surface padding="none" className="min-w-0 overflow-hidden" aria-label="測試清單">
-                        {cases.length > 0 ? (
-                          <table aria-label="測試清單" className="w-full table-fixed text-left">
-                            <thead>
-                              <tr className="border-b border-line bg-surface-subtle text-muted">
-                                <th className="p-3.5 font-medium">測試名稱</th>
-                                <th className="p-3.5 font-medium">最近結果</th>
-                                <th className="p-3.5 font-medium">需補充</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-line">
-                              {cases.map(row => (
-                                <tr key={row.id} className="hover:bg-surface-subtle">
-                                  <td className="p-3">
-                                    <ActionButton
-                                      variant="ghost"
-                                      align="start"
-                                      className="max-w-full break-words text-ink"
-                                      onClick={() => selectCase(row.id)}
-                                    >
-                                      {row.title}
-                                    </ActionButton>
-                                  </td>
-                                  <td className="p-3.5">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <Badge
-                                        tone={
-                                          row.latest?.status === 'passed' &&
-                                          row.freshness === 'current'
-                                            ? 'success'
-                                            : row.latest?.status === 'failed'
-                                              ? 'danger'
-                                              : 'neutral'
-                                        }
-                                        dot
-                                      >
-                                        {row.latest
-                                          ? `上次${resultLabels[row.latest.status] || row.latest.status}`
-                                          : '尚未執行'}
-                                      </Badge>
-                                      {row.latest && row.freshness !== 'current' && (
-                                        <span className="text-muted">新版未驗證</span>
-                                      )}
-                                    </div>
-                                  </td>
-                                  <td className="p-3.5 tabular-nums text-muted">
-                                    {row.issues.length || '—'}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        ) : (
-                          <p className="p-6 text-muted">這個功能還沒有測試。</p>
-                        )}
-                      </Surface>
+                      <div hidden={!!selected}><CaseTrackingTable cases={cases} features={view.catalog.features} busy={busy} onCase={selectCase} /></div>
                     )}
 
                     {selected && (
@@ -646,6 +799,7 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
                         onClose={close}
                         onEdit={id => setEditor(view.catalog.cases.find(row => row.id === id))}
                         onCode={(scope, path) => void readCode(scope, path)}
+                        onFeature={navigateFeature}
                         onCase={id => {
                           const target = view.cases.find(row => row.id === id);
                           if (target) {
@@ -665,10 +819,11 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
                     )}
                   </div>
                 )}
+                </div>
               </>
             )}
 
-            {!!view.warnings.length && (
+            {!readingFeature && !!view.warnings.length && (
               <Disclosure
                 summary={<span className="text-warning">{`讀取限制（${view.warnings.length}）`}</span>}
               >
@@ -679,6 +834,64 @@ export function CatalogWorkspace({ navigation }: { navigation: ReactNode }) {
                 </ul>
               </Disclosure>
             )}
+
+            <div hidden={!!readingFeature}><Disclosure summary="手動分析工具" className="bg-surface-subtle">
+              <div className="space-y-4">
+                <p className="text-muted">
+                  平常使用上方「AI 分析功能」即可自動完成；僅於自動分析失敗，或需在本機編輯器手動微調提案時依序操作：
+                </p>
+                <div className="grid gap-3 md:grid-cols-3">
+                  <div className="flex flex-col justify-between gap-3 rounded-lg border border-line bg-canvas p-3">
+                    <div className="space-y-1">
+                      <p className="font-medium text-ink">1. 產出前端證據</p>
+                      <p className="text-muted">重新掃描程式碼並產生唯讀分析資料。</p>
+                    </div>
+                    <ActionButton
+                      className="w-full"
+                      disabled={busy || !!editor}
+                      onClick={() => void prepare('frontend-features-prepare')}
+                    >
+                      準備分析資料
+                    </ActionButton>
+                  </div>
+                  <div className="flex flex-col justify-between gap-3 rounded-lg border border-line bg-canvas p-3">
+                    <div className="space-y-1">
+                      <p className="font-medium text-ink">2. 交給本機 AI 整理</p>
+                      <p className="text-muted">複製任務文字給本機 AI 產出功能提案檔。</p>
+                    </div>
+                    <ActionButton
+                      icon="copy"
+                      className="w-full"
+                      onClick={() => void copy(organizeFeaturesTask)}
+                    >
+                      複製整理任務
+                    </ActionButton>
+                  </div>
+                  <div className="flex flex-col justify-between gap-3 rounded-lg border border-line bg-canvas p-3">
+                    <div className="space-y-1">
+                      <p className="font-medium text-ink">3. 套用到功能地圖</p>
+                      <p className="text-muted">確認提案檔就緒後，驗證並更新地圖。</p>
+                    </div>
+                    <ActionButton
+                      className="w-full"
+                      disabled={busy || !!editor || !view.frontendPreparation?.proposal}
+                      onClick={() => void prepare('frontend-features-apply')}
+                    >
+                      載入 AI 結果
+                    </ActionButton>
+                  </div>
+                </div>
+                <Disclosure summary="查看任務指令原文">
+                  <textarea
+                    aria-label="功能整理任務"
+                    readOnly
+                    rows={6}
+                    className="w-full resize-y rounded-lg border border-line-strong bg-canvas p-3 font-mono text-body text-ink"
+                    value={organizeFeaturesTask}
+                  />
+                </Disclosure>
+              </div>
+            </Disclosure></div>
           </div>
         </div>
       )}

@@ -2,6 +2,7 @@ import { readFile, writeFile, mkdir, rename, lstat } from 'node:fs/promises';
 import { resolve, join, relative, isAbsolute } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { frontendSnapshot, rejectSourceLinks, sourceDigest } from './frontend-snapshot.mjs';
+import { validFeatureSequence } from './feature-sequence.mjs';
 const json=value=>JSON.stringify(value,null,2)+'\n';
 const id=value=>typeof value==='string'&&/^[A-Za-z][A-Za-z0-9_-]{0,79}$/.test(value);
 const text=(value,max)=>typeof value==='string'&&value.length<=max&&!value.includes('\0');
@@ -20,6 +21,7 @@ export function validateFeatureMap(result,evidence,options={}) {
     if(row.level!==undefined&&(typeof row.level!=='number'||!Number.isInteger(row.level)||![1,2,3,4].includes(row.level)))throw new Error(`功能 ${row.id} 的 level 必須為 1（${levelLabels[1]}）~4（${levelLabels[4]}），收到 ${row.level}。`);
     if(row.parentId!==undefined&&row.parentId!==null&&(!id(row.parentId)||row.parentId===row.id))throw new Error(`功能 ${row.id} 的 parentId 格式不合法或自我參照。`);
     features.set(row.id,row);
+    if(!validFeatureSequence(row.sequence,source=>sources([source])))fail();
     for(const page of row.pageIds){if(!pages.has(page)||assigned.has(page))fail();assigned.add(page);}
     for(const api of row.apiIds){if(!apis.has(api))fail();assignedApis.add(api);}
   }
@@ -70,8 +72,9 @@ export async function applyFeatureMap(projectRoot,result,evidence,sourceRoot) {
     const previous=catalog.features.find(row=>row.id===incoming.id);
     const known=previous?.sources||[], sources=[...known];
     for(const source of incoming.sources)if(!sources.some(row=>row.path===source.path&&row.line===source.line))sources.push({...source,hash:hashes.get(source.path)});
-    const dependencies=[...new Set([...incoming.sources.map(row=>row.path),...incoming.pageIds.flatMap(id=>evidence.pages.find(row=>row.id===id)?.dependencies||[])])];
+    const dependencies=[...new Set([...incoming.sources.map(row=>row.path),...(incoming.sequence||[]).map(step=>step.source.path),...incoming.pageIds.flatMap(id=>evidence.pages.find(row=>row.id===id)?.dependencies||[])])];
     const row={...(previous||{}),id:incoming.id,name:previous?.name||incoming.name,sources:sources.slice(0,100),frontend:{description:incoming.description,pageIds:incoming.pageIds,apiIds:incoming.apiIds,questions:incoming.questions,evidence:incoming.evidence,sourceHash:result.sourceHash,state:'active',dependencies,...(incoming.level!==undefined?{level:incoming.level}:{}),...(incoming.parentId?{parentId:incoming.parentId}:{})}};
+    if(incoming.sequence!==undefined)row.frontend.sequence=incoming.sequence;
     if(previous)Object.assign(previous,row);else catalog.features.push(row);
   }
   catalog.frontendAnalysis={schemaVersion:1,sourceHash:result.sourceHash,generatedAt:result.generatedAt,coverage,files:evidence.files.map(({path,hash})=>({path,hash})),routes:evidence.routes,pages:evidence.pages.map(({imports,navigation,dependencies,...row})=>row),apis:evidence.apis,relations:result.relations,unassignedPageIds:result.unassignedPageIds,unassignedApiIds:result.unassignedApiIds,notes:result.notes,warnings:evidence.warnings,unresolved:evidence.unresolved};

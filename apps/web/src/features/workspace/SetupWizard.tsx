@@ -1,31 +1,56 @@
-import { useRef, useState } from 'react';
-import type { KnowledgeIndex, LocalConfig } from './client';
+import { useEffect, useRef, useState } from 'react';
+import type {
+  AiInspectResult,
+  AiProviderId,
+  AiTestResult,
+  KnowledgeIndex,
+  LocalConfig,
+} from './client';
 import { operation, settings } from './client';
 import { KnowledgeImport } from './KnowledgeImport';
+import { WorkspaceToast } from './WorkspaceToast';
+import { Dropdown } from '../../components/ui/Dropdown';
 import {
   ActionButton,
-  Banner,
+  Disclosure,
+  StatusDot,
   Surface,
   TextField,
   WorkspaceIcon,
   cx,
 } from '../../components/ui/ds';
 
-const steps = ['前端來源', '測試專案', '專案知識'] as const;
+const steps = ['AI CLI', '前端來源', '測試專案', '專案知識'] as const;
+
+const providerMeta: readonly { id: AiProviderId; title: string }[] = [
+  { id: 'codex', title: 'Codex' },
+  { id: 'claude', title: 'Claude Code' },
+  { id: 'gemini', title: 'Gemini' },
+];
 
 export function SetupWizard({
   initial,
   onComplete,
   onDismiss,
+  onSavedAi,
   required = false,
 }: {
   initial: LocalConfig;
   onComplete: (config: LocalConfig) => void;
   onDismiss: () => void;
+  onSavedAi?: (config: LocalConfig) => void;
   required?: boolean;
 }) {
   const [config, setConfig] = useState(initial);
-  const [step, setStep] = useState(initial.initialized && initial.configured ? 3 : 1);
+  const [step, setStep] = useState(required && initial.initialized && initial.configured ? 4 : 1);
+  const [aiProvider, setAiProvider] = useState<AiProviderId>(initial.ai?.provider || 'codex');
+  const [aiCli, setAiCli] = useState(initial.ai?.cliConfigured || '');
+  const [aiModel, setAiModel] = useState(initial.ai?.model || '');
+  const [customModelMode, setCustomModelMode] = useState(false);
+  const [inspected, setInspected] = useState<AiInspectResult>();
+  const [inspecting, setInspecting] = useState(false);
+  const [testingCli, setTestingCli] = useState(false);
+  const [savingCli, setSavingCli] = useState(false);
   const [source, setSource] = useState(initial.sourceRoot);
   const [project, setProject] = useState(initial.projectRoot);
   const [mode, setMode] = useState<'git' | 'local'>();
@@ -35,9 +60,71 @@ export function SetupWizard({
   const [picking, setPicking] = useState(false);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [count, setCount] = useState(initial.knowledgeCount || 0);
   const pickingRef = useRef(false);
-  const locked = busy || importing;
+  const locked = busy || importing || testingCli || savingCli;
+
+  async function inspectCli(targetProvider = aiProvider, customPath = aiCli) {
+    setInspecting(true);
+    try {
+      const result = await operation<AiInspectResult>(config, 'ai-inspect', {
+        aiProvider: targetProvider,
+        ...(customPath.trim() ? { aiCli: customPath.trim() } : {}),
+      });
+      setInspected(result);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : '無法偵測 AI CLI 狀態。');
+    } finally {
+      setInspecting(false);
+    }
+  }
+
+  useEffect(() => {
+    void inspectCli(initial.ai?.provider || 'codex', initial.ai?.cliConfigured || '');
+  }, []);
+
+  async function testCli() {
+    setTestingCli(true);
+    setError('');
+    setNotice('');
+    try {
+      const result = await operation<AiTestResult>(config, 'ai-test', {
+        aiProvider,
+        aiCli,
+        aiModel,
+      });
+      setNotice(
+        `${result.label || activeMeta.title} 連線正常${result.model ? `（${result.model}）` : ''}`,
+      );
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'CLI 測試連線失敗，請核對登入與模型。');
+    } finally {
+      setTestingCli(false);
+    }
+  }
+
+  async function saveCli() {
+    setSavingCli(true);
+    setError('');
+    setNotice('');
+    try {
+      const saved = await operation<LocalConfig>(config, 'ai-settings', {
+        aiProvider,
+        aiCli,
+        aiModel,
+      });
+      const merged = { ...saved, session: saved.session || config.session };
+      setConfig(merged);
+      onSavedAi?.(merged);
+      const label = providerMeta.find(item => item.id === aiProvider)?.title || aiProvider;
+      setNotice(`已儲存 ${label}${aiModel.trim() ? ` · ${aiModel.trim()}` : ''}`);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : '無法儲存 AI CLI 設定。');
+    } finally {
+      setSavingCli(false);
+    }
+  }
 
   async function choose(kind: 'source' | 'project', targetMode = mode) {
     if (pickingRef.current || locked) return;
@@ -75,8 +162,20 @@ export function SetupWizard({
   async function next() {
     setBusy(true);
     setError('');
+    setNotice('');
     try {
       if (step === 1) {
+        const saved = await operation<LocalConfig>(config, 'ai-settings', {
+          aiProvider,
+          aiCli,
+          aiModel,
+        });
+        const merged = { ...saved, session: saved.session || config.session };
+        setConfig(merged);
+        onSavedAi?.(merged);
+        if (!mode && saved.sourceRoot) setMode('local');
+        setStep(2);
+      } else if (step === 2) {
         let path = source;
         if (mode === 'git') {
           path = (
@@ -89,14 +188,14 @@ export function SetupWizard({
           setMode('local');
         }
         await operation(config, 'validate-source', { path });
-        setStep(2);
-      } else if (step === 2) {
+        setStep(3);
+      } else if (step === 3) {
         await operation(config, 'setup', { sourceRoot: source, projectRoot: project });
         const value = await settings();
         setConfig(value);
         const knowledge = await operation<KnowledgeIndex>(value, 'knowledge');
         setCount(knowledge.documents.filter(row => !('missing' in row && row.missing)).length);
-        setStep(3);
+        setStep(4);
       } else {
         await operation(config, 'setup-complete');
         onComplete(await settings());
@@ -110,12 +209,52 @@ export function SetupWizard({
 
   const enabled =
     step === 1
-      ? mode === 'git'
-        ? !!url.trim() && !!destination.trim()
-        : mode === 'local' && !!source.trim()
+      ? true
       : step === 2
-        ? !!project.trim()
-        : count > 0;
+        ? mode === 'git'
+          ? !!url.trim() && !!destination.trim()
+          : mode === 'local' && !!source.trim()
+        : step === 3
+          ? !!project.trim()
+          : count > 0;
+
+  const activeProviderInfo =
+    inspected?.providers?.[aiProvider] ||
+    (inspected?.provider === aiProvider ? inspected : undefined);
+  const activeMeta = providerMeta.find(item => item.id === aiProvider) || providerMeta[0];
+  const cliResolved =
+    activeProviderInfo?.cliResolved ||
+    (config.ai?.provider === aiProvider ? config.ai.cliResolved : aiProvider);
+  const cliInstalled = activeProviderInfo
+    ? activeProviderInfo.installed
+    : config.ai?.provider === aiProvider
+      ? config.ai.installed
+      : false;
+  const discoveredModels = activeProviderInfo?.models || [];
+  const modelInList = discoveredModels.some(option => option.value === aiModel);
+  const dropdownModelValue =
+    customModelMode || (!!aiModel && !modelInList) ? '__custom__' : aiModel;
+  const modelOptions = [
+    { value: '', label: '工具預設' },
+    ...discoveredModels,
+    { value: '__custom__', label: '自訂' },
+  ];
+
+  const progressText = testingCli
+    ? '正在測試連線…'
+    : savingCli
+      ? '正在儲存…'
+      : locked && !picking && !importing
+        ? step === 1
+          ? '正在儲存…'
+          : step === 2 && mode === 'git'
+            ? '正在下載前端，最長約兩分鐘…'
+            : step === 2
+              ? '正在驗證前端來源…'
+              : step === 3
+                ? '正在建立框架並分析前端…'
+                : '正在儲存設定…'
+        : '';
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-canvas p-5 font-sans text-body text-ink lg:p-10">
@@ -144,7 +283,7 @@ export function SetupWizard({
           )}
         </header>
 
-        <ol aria-label="設定進度" className="mb-8 grid grid-cols-3 gap-3">
+        <ol aria-label="設定進度" className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {steps.map((title, index) => {
             const number = index + 1;
             const current = step === number;
@@ -181,10 +320,160 @@ export function SetupWizard({
         </ol>
 
         <h1 id="setup-title" className="mb-6 text-title font-bold">
-          {step === 1 ? '前端架構分析' : step === 2 ? '測試專案放置位置' : '上傳 PRD、業務流程文件'}
+          {step === 1
+            ? 'AI CLI 設定'
+            : step === 2
+              ? '前端架構分析'
+              : step === 3
+                ? '測試專案放置位置'
+                : '上傳 PRD、業務流程文件'}
         </h1>
 
         {step === 1 ? (
+          <div className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-3" role="group" aria-label="AI CLI 工具">
+              {providerMeta.map(item => {
+                const info = inspected?.providers?.[item.id];
+                const selected = aiProvider === item.id;
+                const dotTone = !info?.installed
+                  ? 'danger'
+                  : info.loggedIn === true
+                    ? 'success'
+                    : info.loggedIn === false
+                      ? 'warning'
+                      : 'neutral';
+                const statusText = inspecting
+                  ? '偵測中'
+                  : !info?.installed
+                    ? '未安裝'
+                    : info.loggedIn === true
+                      ? '已登入'
+                      : info.loggedIn === false
+                        ? '未登入'
+                        : '已安裝';
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    aria-pressed={selected}
+                    disabled={locked}
+                    onClick={() => {
+                      setAiProvider(item.id);
+                      const keepSaved = config.ai?.provider === item.id;
+                      setAiCli(keepSaved ? config.ai?.cliConfigured || '' : '');
+                      setAiModel(keepSaved ? config.ai?.model || '' : '');
+                      setCustomModelMode(false);
+                      setError('');
+                      setNotice('');
+                    }}
+                    className={cx(
+                      'flex min-h-12 items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left',
+                      'hover:bg-surface-subtle active:bg-surface-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:opacity-50',
+                      selected
+                        ? 'border-brand bg-surface'
+                        : 'border-line bg-canvas',
+                    )}
+                  >
+                    <span className="font-medium text-ink">{item.title}</span>
+                    <span className="inline-flex items-center gap-1.5 text-muted">
+                      <StatusDot tone={dotTone} />
+                      <span>{statusText}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <Surface className="space-y-4" padding="lg">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+                <div className="min-w-0 space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-section font-medium text-ink">{activeMeta.title}</p>
+                    {activeProviderInfo?.version && (
+                      <span className="font-mono text-muted">v{activeProviderInfo.version}</span>
+                    )}
+                    <span className="text-muted">
+                      {aiProvider === 'codex' ? '文字與圖片' : '僅支援文字'}
+                    </span>
+                  </div>
+                  <p className="break-all font-mono text-muted">
+                    {cliInstalled ? cliResolved : '未找到執行檔'}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <ActionButton
+                    icon="refresh"
+                    disabled={locked || inspecting}
+                    onClick={() => void inspectCli(aiProvider, aiCli)}
+                  >
+                    重新偵測
+                  </ActionButton>
+                  <ActionButton
+                    disabled={locked || inspecting}
+                    onClick={() => void testCli()}
+                  >
+                    {testingCli ? '測試中…' : '測試連線'}
+                  </ActionButton>
+                  <ActionButton
+                    variant="secondary"
+                    disabled={locked || inspecting}
+                    onClick={() => void saveCli()}
+                  >
+                    {savingCli ? '儲存中…' : '儲存'}
+                  </ActionButton>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <p className="font-medium text-ink">模型</p>
+                <Dropdown
+                  label="模型"
+                  value={dropdownModelValue}
+                  disabled={locked}
+                  options={modelOptions}
+                  onChange={value => {
+                    setError('');
+                    setNotice('');
+                    if (value === '__custom__') {
+                      setCustomModelMode(true);
+                    } else {
+                      setCustomModelMode(false);
+                      setAiModel(value);
+                    }
+                  }}
+                />
+              </div>
+
+              {(customModelMode || (!!aiModel && !modelInList)) && (
+                <TextField
+                  label="模型名稱"
+                  value={aiModel}
+                  disabled={locked}
+                  placeholder="例如 o4-mini、sonnet"
+                  onChange={event => {
+                    setAiModel(event.target.value);
+                    setError('');
+                    setNotice('');
+                  }}
+                />
+              )}
+
+              <Disclosure summary="自訂執行檔路徑">
+                <TextField
+                  label="執行檔路徑"
+                  value={aiCli}
+                  disabled={locked}
+                  placeholder="留空自動偵測"
+                  onChange={event => {
+                    setAiCli(event.target.value);
+                    setError('');
+                    setNotice('');
+                  }}
+                />
+              </Disclosure>
+            </Surface>
+          </div>
+        ) : step === 2 ? (
           <>
             <div className="grid gap-4 sm:grid-cols-2" role="group" aria-label="來源方式">
               {(
@@ -269,7 +558,7 @@ export function SetupWizard({
               </Surface>
             )}
           </>
-        ) : step === 2 ? (
+        ) : step === 3 ? (
           <Surface className="mx-auto max-w-xl space-y-5" padding="lg">
             <button
               type="button"
@@ -313,22 +602,17 @@ export function SetupWizard({
           </div>
         )}
 
-        {locked && !picking && !importing && (
-          <Banner tone="neutral" className="mt-5">
-            {step === 1 && mode === 'git'
-              ? '正在下載前端，最長約兩分鐘…'
-              : step === 1
-                ? '正在驗證前端來源…'
-                : step === 2
-                  ? '正在建立框架並分析前端…'
-                  : '正在儲存設定…'}
-          </Banner>
-        )}
-        {error && (
-          <Banner tone="danger" className="mt-5">
-            {error}
-          </Banner>
-        )}
+        <WorkspaceToast
+          open={!!error || !!notice || !!progressText}
+          tone={error ? 'danger' : notice ? 'success' : 'neutral'}
+          role={error ? 'alert' : 'status'}
+          autoHideMs={error || notice ? 3000 : 0}
+          onDismiss={
+            error ? () => setError('') : notice ? () => setNotice('') : undefined
+          }
+        >
+          {error || notice || progressText}
+        </WorkspaceToast>
 
         <footer className="mt-8 flex items-center justify-between gap-3 border-t border-line pt-5">
           <div>
@@ -337,8 +621,9 @@ export function SetupWizard({
                 disabled={locked}
                 onClick={() => {
                   setStep(step - 1);
-                  if (step === 2 && !mode) setMode('local');
+                  if (step === 3 && !mode && source) setMode('local');
                   setError('');
+                  setNotice('');
                 }}
               >
                 上一步
@@ -350,7 +635,7 @@ export function SetupWizard({
             disabled={locked || !enabled}
             onClick={() => void next()}
           >
-            {step === 3 ? '完成設定' : step === 1 && mode === 'git' ? '下載並繼續' : '下一步'}
+            {step === 4 ? '完成設定' : step === 2 && mode === 'git' ? '下載並繼續' : '下一步'}
           </ActionButton>
         </footer>
       </section>

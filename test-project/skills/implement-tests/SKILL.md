@@ -5,6 +5,8 @@ description: 依測試專案中的案例與知識實作 API、流程或畫面測
 
 # 依專案案例實作測試
 
+為讓案例流程能對應報告，`test.step` 名稱與 `steps[].action` 完全一致，且同案例中保持唯一；重試或迴圈出現同名時網站不猜測哪一筆結果。保留選填 interaction 及其來源，不以靜態 import 清單推定 API 順序。網站只有案例／依賴版本相符、唯一腳本及唯一同名步驟時才標示逐步結果；失敗步驟代表觀測位置，不代表後端根因已確認。
+
 讀 AGENTS.md、test-cases/README.md、指定 catalog 案例與相關 knowledge。流程規劃、補問題與實作全部在此專案及本機 AI 對話完成，網站僅觀看表格，不需要回網站確認。可用 `node support/case-plan-cli.mjs TC-CASE-ID` 檢查資料完整性；這是唯讀檢查，不發產品請求、不要求 reviews 記錄。
 
 缺預期、步驟、樣式基準或關鍵資料時，先依 skills/plan-test-cases/SKILL.md 整理具體問題，一次向使用者詢問並更新 catalog，不猜測或刪問題湊完整。撰寫前後重讀案例與知識，若途中改動先核對新版本；不以舊確認檔代表本次需求。--review 僅供歷史核對，不是實作前置條件。

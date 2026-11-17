@@ -1,7 +1,11 @@
 import { flowCategory, featureTestDraftHandoff } from './catalog';
 import type { CatalogView } from './catalog';
-import { featureCoverage } from './feature-graph';
-import type { CoverageLevel } from './feature-graph';
+import {
+  featureTreeCoverage,
+  orderedFeatureTree,
+  singleSystemRootFeature,
+} from './feature-graph';
+import type { CoverageLevel, TreeCoverageMetrics } from './feature-graph';
 import { ActionButton, Badge, StatStrip, Surface } from '../../components/ui/ds';
 import type { Tone } from '../../components/ui/ds';
 
@@ -42,20 +46,31 @@ export function GapReport({
   onCopy: (text: string) => void;
 }) {
   const featureById = new Map(view.catalog.features.map(item => [item.id, item]));
-  const rows = view.catalog.features
-    .map(feature => {
+  const systemRoot = singleSystemRootFeature(view.catalog, view.cases);
+  const coverageCache = new Map<string, TreeCoverageMetrics>();
+  const rows = orderedFeatureTree(view.catalog.features, systemRoot?.id)
+    .map(({ feature, parentName }) => {
       const cases = view.cases.filter(item => item.featureId === feature.id);
-      const cov = featureCoverage(cases, feature);
-      return { feature, cases, cov };
+      const cov = featureTreeCoverage(feature.id, view, coverageCache);
+      const isPureContainer =
+        cov.isGroup &&
+        cases.length === 0 &&
+        !(feature.frontend?.pageIds?.length || 0) &&
+        !(feature.frontend?.apiIds?.length || 0);
+      return { feature, parentName, cases, cov, isPureContainer };
     })
     .sort(
       (a, b) =>
+        Number(a.isPureContainer) - Number(b.isPureContainer) ||
         statusOrder[a.cov.coverage] - statusOrder[b.cov.coverage] ||
         a.feature.name.localeCompare(b.feature.name, 'zh-Hant'),
     );
 
+  const summaryRows = rows.some(row => !row.isPureContainer)
+    ? rows.filter(row => !row.isPureContainer)
+    : rows;
   const counts = { full: 0, partial: 0, none: 0, retired: 0 };
-  for (const row of rows) counts[row.cov.coverage]++;
+  for (const row of summaryRows) counts[row.cov.coverage]++;
 
   let apiCount = 0;
   let uiCount = 0;
@@ -84,6 +99,7 @@ export function GapReport({
 
   const featuresWithoutKnowledge = rows.filter(
     row =>
+      !row.isPureContainer &&
       row.cov.coverage !== 'retired' &&
       !view.knowledge.some(doc => doc.featureIds?.includes(row.feature.id)),
   );
@@ -134,12 +150,13 @@ export function GapReport({
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {rows.map(({ feature, cov }) => {
+              {rows.map(({ feature, parentName, cov, isPureContainer }) => {
                 const negAndBound = cov.negativeCount + cov.boundaryCount;
                 const secAndErr = cov.securityCount + cov.errorCount;
                 return (
                   <tr key={feature.id} className="align-top hover:bg-surface-subtle">
                     <td className="break-words p-3.5">
+                      {parentName && <p className="text-muted">{parentName}</p>}
                       <p
                         className={
                           cov.coverage === 'retired'
@@ -150,7 +167,9 @@ export function GapReport({
                         {feature.name}
                         {feature.frontend?.level ? ` · L${feature.frontend.level}` : ''}
                       </p>
-                      <p className="mt-1 font-mono text-muted">{`${feature.id} · ${cov.caseCount} 案例`}</p>
+                      <p className="mt-1 font-mono text-muted">
+                        {`${feature.id} · ${isPureContainer ? `${cov.childCount} 子功能 / ` : ''}${cov.caseCount} 案例`}
+                      </p>
                     </td>
                     <td className="p-3.5">
                       <Badge tone={statusTone[cov.coverage]} dot>
@@ -168,7 +187,7 @@ export function GapReport({
                     <td className="p-3.5">
                       <div className="flex flex-wrap gap-2">
                         <ActionButton onClick={() => onFocusFeature(feature.id)}>查看</ActionButton>
-                        {cov.coverage !== 'full' && cov.coverage !== 'retired' && (
+                        {!isPureContainer && cov.coverage !== 'full' && cov.coverage !== 'retired' && (
                           <>
                             <ActionButton
                               disabled={busy}

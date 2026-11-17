@@ -2,22 +2,26 @@ import { useEffect, useId, useRef, useState } from 'react';
 import type { LocalConfig } from './client';
 import { useAiJob } from './useAiJob';
 import { AiJobStatus } from './AiJobStatus';
-import { ActionButton, Banner, WorkspaceIcon } from '../../components/ui/ds';
+import { WorkspaceToast } from './WorkspaceToast';
+import { ActionButton, WorkspaceIcon } from '../../components/ui/ds';
 
 export function KnowledgeImport({
   config,
   onImported,
   onBusy,
   compact = false,
+  ai: externalAi,
 }: {
   config: LocalConfig;
   onImported: () => void;
   onBusy?: (busy: boolean) => void;
   compact?: boolean;
+  ai?: ReturnType<typeof useAiJob>;
 }) {
   const id = useId();
   const fileInput = useRef<HTMLInputElement>(null);
-  const ai = useAiJob(config);
+  const localAi = useAiJob(externalAi ? undefined : config, 'knowledge');
+  const ai = externalAi || localAi;
 
   useEffect(() => {
     if (ai.job?.kind === 'knowledge' && ai.job.status === 'completed') {
@@ -38,6 +42,7 @@ export function KnowledgeImport({
   async function files(input: HTMLInputElement) {
     setError('');
     setNotice('');
+    ai.dismiss();
     setBusy(true);
     let prepared = false;
     try {
@@ -75,7 +80,9 @@ export function KnowledgeImport({
       await ai.start('ai-knowledge-start', { documents: docs });
     } catch (reason) {
       if (!prepared) setDocuments([]);
-      setError(reason instanceof Error ? reason.message : '無法讀取文件，請使用 UTF-8 文字。');
+      if (!prepared || !externalAi) {
+        setError(reason instanceof Error ? reason.message : '無法讀取文件，請使用 UTF-8 文字。');
+      }
     } finally {
       input.value = '';
       setBusy(false);
@@ -85,11 +92,14 @@ export function KnowledgeImport({
   async function submit() {
     setError('');
     setNotice('');
+    ai.dismiss();
     setBusy(true);
     try {
       await ai.start('ai-knowledge-start', { documents });
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '匯入失敗，請重試。');
+      if (!externalAi) {
+        setError(reason instanceof Error ? reason.message : '匯入失敗，請重試。');
+      }
     } finally {
       setBusy(false);
     }
@@ -144,16 +154,28 @@ export function KnowledgeImport({
         </ul>
       )}
 
-      <AiJobStatus
-        variant={compact ? 'toast' : 'inline'}
-        pendingStage={compact && busy && !ai.running ? '正在讀取並送出知識…' : undefined}
-        job={ai.job}
-        error={error ? undefined : ai.error}
-        onCancel={() => void ai.cancel()}
-      />
+      {!externalAi && (
+        <AiJobStatus
+          hideCompleted={compact}
+          pendingStage={compact && busy && !ai.running ? '正在讀取並送出知識…' : undefined}
+          job={ai.job}
+          error={error ? undefined : ai.error}
+          onCancel={() => void ai.cancel()}
+          onDismiss={ai.dismiss}
+        />
+      )}
 
-      {error && <Banner tone="danger">{error}</Banner>}
-      {notice && <Banner tone="neutral">{notice}</Banner>}
+      <WorkspaceToast
+        open={!!error || !!notice}
+        tone={error ? 'danger' : 'neutral'}
+        role={error ? 'alert' : 'status'}
+        onDismiss={() => {
+          setError('');
+          setNotice('');
+        }}
+      >
+        {error || notice}
+      </WorkspaceToast>
 
       {!busy &&
         !ai.running &&

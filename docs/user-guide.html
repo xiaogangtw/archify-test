@@ -1,0 +1,975 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Archify Test｜看圖寫第一個測試</title>
+<style>
+:root{
+  color-scheme:dark;
+  font:14px/1.5 Inter,"Noto Sans TC",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  color:#e6edf3;
+  background:#0d1117;
+  --canvas:#0d1117;
+  --sidebar:#010409;
+  --surface:#161b22;
+  --surface-subtle:#1c2128;
+  --surface-active:#21262d;
+  --line:#30363d;
+  --line-strong:#6e7681;
+  --muted:#9da7b3;
+  --ink:#e6edf3;
+  --brand:#e6edf3;
+  --brand-soft:#30363d;
+  --on-brand:#0d1117;
+  --green:#8ddb9f;
+  --green-soft:#152b22;
+  --yellow:#e3b764;
+  --yellow-soft:#302718;
+  --red:#ff9b9b;
+  --red-soft:#321b20;
+  --blue:#79c0ff;
+  --blue-soft:#12263f;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--canvas);color:var(--ink);-webkit-font-smoothing:antialiased}
+button,a,input{font:inherit}
+button{
+  cursor:pointer;
+  min-height:32px;
+  border:1px solid var(--line-strong);
+  border-radius:8px;
+  padding:5px 12px;
+  background:var(--surface);
+  color:var(--ink);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  font-weight:500;
+  transition:none;
+}
+button:hover{background:var(--brand-soft);border-color:var(--ink)}
+button:active{background:var(--surface-active)}
+button:disabled{cursor:default;opacity:.45}
+button:focus-visible,a:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+h1{font-size:24px;line-height:1.3;margin:0 0 4px;font-weight:700}
+h2{font-size:20px;line-height:1.3;margin:0 0 4px;font-weight:700}
+h3{font-size:15px;line-height:1.4;margin:0 0 8px;font-weight:500}
+p{margin:0 0 8px}
+.muted{color:var(--muted)}
+
+.shell{max-width:1360px;padding:24px 20px;margin:auto}
+
+/* Masthead */
+.mast{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+.mast-title{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.badge{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:2px 8px;
+  border-radius:8px;
+  font-size:12px;
+  font-weight:500;
+  border:1px solid var(--line);
+  background:var(--surface-subtle);
+  color:var(--muted);
+  line-height:1.4;
+}
+.badge.green{color:var(--green);border-color:rgba(141,219,159,.3);background:var(--green-soft)}
+.badge.yellow{color:var(--yellow);border-color:rgba(227,183,100,.3);background:var(--yellow-soft)}
+.badge.blue{color:var(--blue);border-color:rgba(121,192,255,.3);background:var(--blue-soft)}
+
+/* Astryx SegmentedGroup for Steps */
+.step-nav{
+  display:inline-flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:4px;
+  border-radius:12px;
+  border:1px solid var(--line);
+  background:var(--sidebar);
+  padding:4px;
+  margin-bottom:20px;
+  width:100%;
+}
+.step-nav button{
+  flex:1;
+  min-width:160px;
+  background:transparent;
+  border:1px solid transparent;
+  color:var(--muted);
+  padding:6px 12px;
+  font-size:13px;
+  border-radius:8px;
+  justify-content:center;
+}
+.step-nav button[aria-selected=true]{
+  background:var(--brand-soft);
+  color:#fff;
+  border-color:var(--line);
+  font-weight:600;
+}
+.step-num{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  background:var(--surface-active);
+  font-size:11px;
+  margin-right:6px;
+  font-weight:700;
+  color:inherit;
+}
+.step-nav button[aria-selected=true] .step-num{
+  background:#fff;
+  color:#0d1117;
+}
+
+.panel[hidden]{display:none}
+
+/* Astryx StatStrip (Compact Feature Benefits) */
+.benefit-strip{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:10px;
+  margin-bottom:16px;
+}
+.benefit-item{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:10px 14px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.benefit-item svg{color:var(--green);flex-shrink:0}
+.benefit-item div{min-width:0}
+.benefit-item strong{display:block;font-size:13px;color:#fff;line-height:1.3}
+.benefit-item span{font-size:12px;color:var(--muted);display:block;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Astryx Action Stepper (Compact 1-2-3 Guide) */
+.stepper{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin-bottom:16px;
+  background:var(--surface-subtle);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:8px;
+}
+.step-item{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 10px;
+  border-radius:8px;
+  font-size:13px;
+  background:var(--surface);
+  border:1px solid var(--line);
+}
+.step-item.active{
+  border-color:rgba(121,192,255,.4);
+  background:var(--blue-soft);
+}
+.step-circle{
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  background:#30363d;
+  color:#fff;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-size:11px;
+  font-weight:700;
+  flex-shrink:0;
+}
+.step-item.active .step-circle{background:var(--blue);color:#0d1117}
+.step-item strong{color:#fff;margin-right:4px}
+.step-item span{color:var(--muted);font-size:12px}
+
+/* Astryx Mockup Window */
+.mock-window{
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:var(--surface);
+  overflow:hidden;
+  margin-bottom:16px;
+}
+.mock-bar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:8px 14px;
+  background:#090d12;
+  border-bottom:1px solid var(--line);
+  font-size:12px;
+}
+.mock-dots{display:flex;gap:5px}
+.mock-dot{width:9px;height:9px;border-radius:50%;background:#30363d}
+.mock-title{color:var(--muted);font-family:Consolas,monospace;font-size:12px}
+.mock-body{padding:14px}
+
+/* Interactive Callouts & Pins */
+.pin{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  background:#f0883e;
+  color:#0d1117;
+  font-size:10px;
+  font-weight:700;
+  box-shadow:0 0 0 2px rgba(240,136,62,.3);
+  vertical-align:middle;
+}
+.pulse-btn{
+  background:var(--blue) !important;
+  color:#0d1117 !important;
+  border-color:var(--blue) !important;
+  font-weight:700 !important;
+  box-shadow:0 0 0 3px rgba(121,192,255,.35);
+}
+
+/* Split Views for Steps 2, 3, 4 */
+.split-view{
+  display:grid;
+  grid-template-columns:360px minmax(0,1fr);
+  gap:16px;
+  margin-bottom:16px;
+  align-items:start;
+}
+.prompt-card{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:14px;
+}
+.prompt-card .tag-label{
+  font-size:11px;
+  font-weight:600;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:.5px;
+  margin-bottom:8px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+.prompt-pre{
+  margin:0 0 12px;
+  white-space:pre-wrap;
+  font:12px/1.7 Consolas,monospace;
+  background:#090d12;
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:10px 12px;
+  color:#e6edf3;
+  overflow-wrap:anywhere;
+}
+.btn-primary{
+  background:#e6edf3;
+  color:#0d1117;
+  border-color:#e6edf3;
+  font-weight:600;
+  width:100%;
+}
+.btn-primary:hover{background:#c9d1d9}
+.copy-msg{font-size:12px;color:var(--green);margin-top:6px;min-height:18px}
+
+/* Tables in Astryx */
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:8px;background:#090d12}
+table{border-collapse:collapse;width:100%;text-align:left;font-size:12px}
+th{color:var(--muted);font-weight:500;background:#161b22;padding:8px 10px;border-bottom:1px solid var(--line)}
+td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:none}
+
+/* Editor & Terminal Layouts */
+.editor-frame{
+  display:grid;
+  grid-template-columns:140px minmax(0,1fr);
+  min-height:260px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  overflow:hidden;
+  background:#090d12;
+}
+.editor-sidebar{
+  background:#06090e;
+  border-right:1px solid var(--line);
+  padding:10px 8px;
+  font-size:12px;
+  color:var(--muted);
+  font-family:Consolas,monospace;
+}
+.editor-sidebar div{padding:3px 6px;margin-bottom:2px;border-radius:4px}
+.editor-sidebar .active{background:#21262d;color:#fff}
+.code-area{
+  padding:12px 14px;
+  margin:0;
+  font:12px/1.7 Consolas,monospace;
+  color:#e6edf3;
+  white-space:pre-wrap;
+}
+.kw{color:#d2a8ff}
+.str{color:#a5d6ff}
+.fn{color:#79c0ff}
+.comment{color:var(--muted)}
+
+.term-area{
+  padding:14px;
+  background:#06090e;
+  font:12px/1.8 Consolas,monospace;
+  color:#e6edf3;
+  white-space:pre-wrap;
+  min-height:220px;
+  border:1px solid var(--line);
+  border-radius:8px;
+}
+.tp{color:var(--blue)}
+.tok{color:var(--green)}
+.tfile{color:var(--yellow)}
+
+/* Astryx Banner (Pro-tips) */
+.astryx-banner{
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:var(--surface);
+  padding:10px 14px;
+  margin-bottom:16px;
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  font-size:13px;
+}
+.astryx-banner svg{color:var(--blue);flex-shrink:0;margin-top:2px}
+.astryx-banner strong{color:#fff;margin-right:6px}
+.astryx-banner span{color:var(--muted)}
+
+/* Segmented View Group in Step 5 */
+.view-nav{
+  display:inline-flex;
+  gap:4px;
+  border-radius:10px;
+  border:1px solid var(--line);
+  background:var(--sidebar);
+  padding:3px;
+  margin-bottom:12px;
+}
+.view-nav button{
+  background:transparent;
+  border:1px solid transparent;
+  color:var(--muted);
+  font-size:12px;
+  padding:4px 10px;
+  border-radius:6px;
+}
+.view-nav button[aria-pressed=true]{
+  background:var(--brand-soft);
+  color:#fff;
+  border-color:var(--line);
+  font-weight:600;
+}
+
+/* Screenshot Mockup */
+.screen-mock{
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:14px;
+  background:var(--surface-subtle);
+  margin-top:10px;
+  text-align:center;
+}
+.screen-card{
+  background:#090d12;
+  border:1px solid var(--line);
+  border-radius:6px;
+  padding:16px;
+  max-width:440px;
+  margin:auto;
+  text-align:left;
+}
+
+/* Bottom Nav */
+.bottom-bar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-top:20px;
+  padding-top:16px;
+  border-top:1px solid var(--line);
+}
+.footer-text{color:var(--muted);font-size:12px;margin-top:16px}
+
+details{
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:10px 14px;
+  background:var(--surface);
+  margin-bottom:12px;
+  font-size:13px;
+}
+summary{cursor:pointer;font-weight:500;color:#fff}
+details[open] summary{margin-bottom:10px}
+
+@media(max-width:960px){
+  .split-view{grid-template-columns:1fr}
+  .stepper{grid-template-columns:1fr}
+}
+@media(max-width:640px){
+  .shell{padding:14px}
+  .step-nav button{min-width:110px;font-size:12px}
+  .editor-frame{grid-template-columns:1fr}
+  .editor-sidebar{display:none}
+}
+.step-nav{border:0;border-bottom:1px solid var(--line);background:transparent;border-radius:0;padding:0 0 16px;gap:8px}.step-nav button{border:1px solid transparent;background:transparent;color:var(--muted)}.step-nav button[aria-selected=true]{background:var(--surface-active);border-color:var(--line-strong);color:var(--ink)}.step-nav button[aria-selected=true] .step-num{background:var(--ink);color:var(--canvas)}.script-types{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:20px 0}.script-types .prompt-card{min-width:0}.script-result{margin-top:20px;border-top:1px solid var(--line);padding-top:16px}.script-result pre{white-space:pre-wrap;overflow-wrap:anywhere}.case-type-bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:20px 0}.case-type-bar button[aria-pressed=true]{background:var(--brand);color:var(--on-brand)}.stepper,.benefit-strip{display:none}.btn-primary{background:var(--brand)!important;color:var(--on-brand)!important;border-color:var(--brand)!important}@media(max-width:900px){.script-types{grid-template-columns:1fr}}
+.prepare-screen{display:grid;grid-template-columns:180px minmax(0,1fr);min-height:420px}.prepare-sidebar{padding:24px 16px;background:var(--sidebar);border-right:1px solid var(--line)}.prepare-sidebar strong,.prepare-sidebar span{display:block;margin-bottom:12px}.prepare-sidebar span{padding:8px;color:var(--muted)}.prepare-sidebar .chosen{background:var(--surface-active);color:var(--ink);border-radius:8px}.prepare-content{padding:24px;min-width:0}.prepare-content label{display:block;color:var(--muted);margin-top:12px}.mock-field{border:1px solid var(--line-strong);border-radius:8px;padding:10px 12px;margin:8px 0 16px;overflow-wrap:anywhere}.prepare-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:24px}.prepare-action{display:inline-block;padding:8px 14px;border-radius:8px;background:var(--brand);color:var(--on-brand);font-weight:500}.mock-upload{border:1px dashed var(--line-strong);border-radius:12px;padding:40px 16px;text-align:center;margin-bottom:24px}.mock-upload p{margin:16px 0}.prepare-paths{display:flex;gap:32px;margin-bottom:24px}.prepare-paths strong{display:block}@media(max-width:640px){.prepare-screen{grid-template-columns:1fr}.prepare-sidebar{display:none}.prepare-content{padding:16px}.prepare-paths{flex-direction:column;gap:8px}}
+</style>
+</head>
+<body>
+<main class="shell">
+
+  <!-- Masthead -->
+  <header class="mast">
+    <div>
+      <div class="mast-title">
+        <h1>Archify Test｜看圖寫第一個測試</h1>
+      </div>
+    </div>
+    <a href="http://localhost:5173/" target="_blank" rel="noreferrer" class="badge">開啟本機平台</a>
+  </header>
+
+  <!-- Astryx SegmentedGroup Navigation -->
+  <nav class="step-nav" role="tablist" aria-label="操作五步驟">
+    <button role="tab" id="tab-1" aria-controls="step-1" aria-selected="true"><span class="step-num">1</span> 準備與分析</button>
+    <button role="tab" id="tab-2" aria-controls="step-2" aria-selected="false" tabindex="-1"><span class="step-num">2</span> AI 規劃案例</button>
+    <button role="tab" id="tab-3" aria-controls="step-3" aria-selected="false" tabindex="-1"><span class="step-num">3</span> AI 實作腳本</button>
+    <button role="tab" id="tab-4" aria-controls="step-4" aria-selected="false" tabindex="-1"><span class="step-num">4</span> 執行測試</button>
+    <button role="tab" id="tab-5" aria-controls="step-5" aria-selected="false" tabindex="-1"><span class="step-num">5</span> 查看結果</button>
+  </nav>
+
+  <!-- ==================== STEP 1 ==================== -->
+  <section class="panel" id="step-1" role="tabpanel" aria-labelledby="tab-1">
+<h2>準備與分析</h2>
+<div class="case-type-bar" role="group" aria-label="準備畫面">
+<button data-prepare="setup" aria-pressed="true">1 工作區設定</button><button data-prepare="knowledge" aria-pressed="false">2 專案知識</button><button data-prepare="source" aria-pressed="false">3 分析前端</button><button data-prepare="features" aria-pressed="false">4 AI 分析功能</button>
+</div>
+<div class="mock-window"><div class="mock-bar"><strong id="prepare-title">工作區設定</strong><span class="badge">MOCK 操作畫面</span></div>
+<div id="prepare-setup" class="prepare-screen">
+<div class="prepare-sidebar"><strong>首次設定</strong><span class="chosen">AI CLI</span><span>前端來源</span><span>測試專案</span><span>專案知識</span></div>
+<div class="prepare-content"><h3>AI CLI 設定</h3><div class="case-type-bar"><span class="badge">Codex · 已登入</span><span class="badge">Claude Code</span><span class="badge">Gemini</span></div><label>模型</label><div class="mock-field">工具預設</div><div class="case-type-bar"><span class="badge">重新偵測</span><span class="badge">測試連線</span></div><h3>接著設定這兩個位置</h3><label>前端專案路徑</label><div class="mock-field">C:/Projects/frontend</div><label>獨立測試專案路徑</label><div class="mock-field">C:/Projects/my-tests</div><p class="muted">測試專案放在平台與前端來源之外。</p><div class="prepare-action">下一步 → 上傳專案知識</div></div>
+</div>
+<div id="prepare-knowledge" class="prepare-screen" hidden><div class="prepare-sidebar"><strong>Archify Test</strong><span>前端程式碼分析</span><span>功能地圖</span><span class="chosen">專案知識</span></div><div class="prepare-content"><div class="prepare-heading"><h3>專案知識</h3><span class="prepare-action">新增知識</span></div><div class="mock-upload"><strong>匯入知識文件</strong><p>選擇 PRD／業務流程文件</p><span class="badge">MD · HTML · TXT · PNG · JPEG · WebP</span></div><div class="mock-field">會員規則.md <span class="badge">業務規則</span></div><div class="mock-field">登入流程.md <span class="badge">業務規則</span></div><p class="muted">上傳後等待整理完成，核對文件內容。</p></div></div>
+<div id="prepare-source" class="prepare-screen" hidden><div class="prepare-sidebar"><strong>Archify Test</strong><span class="chosen">前端程式碼分析</span><span>功能地圖</span><span>專案知識</span></div><div class="prepare-content"><div class="prepare-heading"><h3>API 測試腳本</h3><span class="prepare-action">分析前端</span></div><div class="prepare-paths"><div><label>讀取前端</label><strong>frontend</strong></div><div><label>輸出腳本</label><strong>my-tests / tests/api</strong></div></div><div class="mock-field">資料夾設定：來源子資料夾留空，分析完整來源</div><div class="table-wrap"><table><thead><tr><th>中間層</th><th>腳本</th><th>建立狀態</th></tr></thead><tbody><tr><td>GetProfile</td><td>GetProfile.spec.ts</td><td>尚未建立</td></tr><tr><td>Login</td><td>Login.spec.ts</td><td>尚未建立</td></tr></tbody></table></div><div class="case-type-bar"><span class="badge">建立所選腳本</span><span class="badge">補齊缺少腳本</span></div><p class="muted">掃描來源並建立草稿；這一步沒有執行產品測試。</p></div></div>
+<div id="prepare-features" class="prepare-screen" hidden><div class="prepare-sidebar"><strong>Archify Test</strong><span>前端程式碼分析</span><span class="chosen">功能地圖</span><span>專案知識</span></div><div class="prepare-content"><div class="prepare-heading"><h3>功能地圖</h3><span class="prepare-action">AI 分析功能</span></div><p class="muted">目前 AI：Codex · 工具預設</p><div class="mock-upload"><span class="badge">會員服務</span><p>身分認證</p><div class="case-type-bar" style="justify-content:center"><span class="badge">登入帳號</span><span class="badge">查詢會員資料</span></div></div><p>分析完成後，點功能看操作與 API 流程。</p><p class="muted">接著在自己的 AI 工具開啟 my-tests，開始規劃案例。</p></div></div>
+</div><p id="prepare-caption" class="muted" style="margin-top:12px">左下工作區設定 → 選 AI → 指定前端與測試專案。</p>
+</section>
+<section class="panel" id="step-2" role="tabpanel" aria-labelledby="tab-2" hidden><h2>先選案例類型</h2><div class="case-type-bar" role="group" aria-label="案例類型"><button data-case-type="web" aria-pressed="true">畫面案例</button><button data-case-type="api" aria-pressed="false">API 案例</button><span id="case-type-hint">target: web · 畫面操作與 DOM 預期</span></div>
+
+    <!-- Split View -->
+    <div class="split-view">
+      <div class="prompt-card">
+        <div class="tag-label">
+          <span>AI 工具對話指令</span>
+          <span class="badge">VS Code / Cursor</span>
+        </div>
+        <pre class="prompt-pre" id="prompt-plan">請先讀 AGENTS.md、knowledge/README.md，
+使用 skills/plan-test-cases/SKILL.md。
+
+我要測「登入後看到會員首頁」。
+規劃畫面案例（target: web），含成功及適用失敗情境，
+寫入 test-cases/catalog.json，連到既有功能。
+每步寫清楚操作、資料和預期。
+
+缺帳號、權限或業務規則請一次問我。
+這次先寫案例，不執行產品。</pre>
+        <button class="btn-primary" data-copy="prompt-plan">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 9h10v11H9V9Zm-4 6H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>
+          複製規劃 Prompt
+        </button>
+        <div class="copy-msg" aria-live="polite"></div>
+      </div>
+
+      <div class="mock-window" style="margin:0">
+        <div class="mock-bar">
+          <div class="mock-dots"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span></div>
+          <span class="mock-title">網站實際畫面：測試流程 (讀取 catalog.json)</span>
+          <span class="badge yellow">已規劃 · 未寫腳本</span>
+        </div>
+        <div class="mock-body">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <strong style="color:#fff;font-size:13px">登入成功後顯示會員首頁</strong>
+            <span class="badge green">TC-AUTH-001</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:70px">步驟</th>
+                  <th>操作目標</th>
+                  <th>測試資料</th>
+                  <th>預期斷言</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>步驟 1</strong></td>
+                  <td>開啟登入頁面</td>
+                  <td><code>baseURL + /login</code></td>
+                  <td>標題與帳號密碼欄位可見</td>
+                </tr>
+                <tr>
+                  <td><strong>步驟 2</strong></td>
+                  <td>輸入帳號並送出</td>
+                  <td><code>demo_user / Pass123</code></td>
+                  <td>POST 200，導向會員首頁</td>
+                </tr>
+                <tr>
+                  <td><strong>步驟 3</strong></td>
+                  <td>核對首頁資訊</td>
+                  <td>當前 Session</td>
+                  <td>看見「測試會員 小明」</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--muted)">
+            <span>前置：未登入 · 清理：登出並重設狀態</span>
+            <span class="badge green">品質無提醒</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Astryx Banner Pro-tip -->
+    <div class="astryx-banner">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
+      <div>
+        <strong>實戰提示：</strong>
+        <span>這一步只定情境，明確要求 AI「不執行產品、不發寫入請求」，確認步驟後再實作。</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== STEP 3 ==================== -->
+  <section class="panel" id="step-3" role="tabpanel" aria-labelledby="tab-3" hidden>
+    <h2>依案例類型，選一種腳本</h2>
+    <div class="script-types">
+      <article class="prompt-card">
+        <h3>畫面測試</h3><p class="muted">驗證點擊、表單與畫面結果。</p>
+        <pre class="prompt-pre" id="prompt-code">請使用 skills/implement-tests/SKILL.md 與 skills/write-web-tests/SKILL.md，
+實作 target: web 的「登入後看到會員首頁」案例。
+先讀案例、知識與實際前端，核對入口、按鈕及登入方式。
+使用 support/web-test.js 的 test／expect 與 fixture browser。
+每步對應唯一同名 test.step，保留畫面證據與業務斷言。
+腳本放 tests/ui/，連回案例，執行型別及證據檢查。
+缺資料先問我；本次不操作真實產品。</pre>
+        <button class="btn-primary" data-copy="prompt-code">複製畫面測試任務</button><p class="copy-msg" aria-live="polite"></p>
+        <div class="script-result"><span class="badge">MOCK 結構示意</span><pre>tests/ui/login.spec.ts
+  開啟登入頁
+  完成登入
+  核對會員首頁與會員名稱
+  保存逐操作畫面證據</pre></div>
+      </article>
+      <article class="prompt-card">
+        <h3>API 測試</h3><p class="muted">驗證請求、回應與資料狀態。</p>
+        <pre class="prompt-pre" id="prompt-api">請使用 skills/implement-tests/SKILL.md 與 skills/write-tests/SKILL.md，
+實作 target: api 的「查詢自己的會員資料」案例。
+先讀案例、知識與前端 API 呼叫，核對參數及預期欄位。
+重用 api/*.ts 的 callApi，不匯入其他 spec。
+檢查 HTTP／GraphQL 錯誤、回應欄位與業務結果。
+單支放 tests/api/，串接放 tests/flows/；token 在同流程傳遞。
+連回案例並檢查型別。缺帳號、權限或清理規則先問我。
+本次只寫腳本，不送產品請求。</pre>
+        <button class="btn-primary" data-copy="prompt-api">複製 API 測試任務</button><p class="copy-msg" aria-live="polite"></p>
+        <div class="script-result"><span class="badge">MOCK 結構示意</span><pre>api/GetProfile.ts → callApi
+ tests/api/GetProfile.spec.ts
+  準備授權與參數
+  呼叫會員資料 API
+  斷言回應是指定會員</pre></div>
+      </article>
+    </div>
+    <p class="muted">畫面測試跑 test:ui；API 測試跑 test:api。兩者都要連回自己的案例。</p>
+  </section>
+
+  <!-- ==================== STEP 4 ==================== -->
+  <section class="panel" id="step-4" role="tabpanel" aria-labelledby="tab-4" hidden>
+
+    <!-- Split View -->
+    <div class="split-view">
+      <div class="prompt-card">
+        <div class="tag-label">
+          <span>AI 終端執行輔助</span>
+          <span class="badge">終端執行</span>
+        </div>
+        <pre class="prompt-pre" id="prompt-run">先檢查剛才的案例與腳本。
+確認不是空白草稿，沒有只移除 skip。
+請先做型別與畫面證據檢查，
+列出測試會使用的環境、帳號與清理方式。
+
+我核對後，再指定這次可以執行的範圍。</pre>
+        <button class="btn-primary" data-copy="prompt-run">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 9h10v11H9V9Zm-4 6H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>
+          複製執行核對 Prompt
+        </button>
+        <div class="copy-msg" aria-live="polite"></div>
+      </div>
+
+      <div class="mock-window" style="margin:0">
+        <div class="mock-bar">
+          <div class="mock-dots"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span></div>
+          <span class="mock-title">Terminal — 本機測試專案終端機執行</span>
+          <span class="badge green">1 PASSED</span>
+        </div>
+        <div class="mock-body">
+          <div class="term-area">
+<span class="tp">$</span> npm run check:types
+<span class="tok">[PASS] TypeScript 靜態型別檢查通過 (0 errors)</span>
+
+<span class="tp">$</span> npm run check:ui-evidence
+<span class="tok">[PASS] web-test fixture 與每步截圖攔截器已掛載</span>
+
+<span class="tp">$</span> npm run test:ui -- tests/ui/login.spec.ts
+Running 1 test using 1 worker
+  <span class="tok">✓</span> 登入成功後顯示會員首頁 (1.2s)
+    <span class="muted">└─ [Step 1] 開啟登入頁面 (截圖已保存)</span>
+    <span class="muted">└─ [Step 2] 輸入帳號密碼並點擊登入 (截圖已保存)</span>
+    <span class="muted">└─ [Step 3] 核對會員首頁狀態 (斷言通過，截圖已保存)</span>
+
+<span class="tfile">單檔 HTML 報告產出:</span> reports/ui/2026-11-13_14-20-00.html
+</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Astryx Banner Pro-tip -->
+    <div class="astryx-banner">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
+      <div>
+        <strong>實戰提示：</strong>
+        <span>永遠先指定單支檔案執行；略過（skipped）不算通過，務必確認真實斷言。</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== STEP 5 ==================== -->
+  <section class="panel" id="step-5" role="tabpanel" aria-labelledby="tab-5" hidden><h2>最後一步：查看結果</h2>
+
+    <!-- Stepper Guide -->
+    <div class="stepper">
+      <div class="step-item active">
+        <span class="step-circle">1</span>
+        <div><strong>重新讀取</strong><span>網站右上角點「重新讀取」</span></div>
+      </div>
+      <div class="step-item">
+        <span class="step-circle">2</span>
+        <div><strong>清單核對</strong><span>測試清單確認「上次通過」</span></div>
+      </div>
+      <div class="step-item">
+        <span class="step-circle">3</span>
+        <div><strong>審查報告</strong><span>開啟圖文報告查驗逐步截圖</span></div>
+      </div>
+    </div>
+
+    <!-- Astryx View Switcher -->
+    <div class="view-nav" role="group" aria-label="切換完成樣式">
+      <button data-view="report" aria-pressed="true">測試報告：看現場證據</button>
+      <button data-view="tracking" aria-pressed="false">測試清單：看整體狀態</button>
+      <button data-view="plans" aria-pressed="false">測試流程：看計畫</button>
+    </div>
+
+    <!-- Scene Container -->
+    <div class="mock-window">
+      <div class="mock-bar">
+        <div class="mock-dots"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span></div>
+        <span class="mock-title" id="preview-title">測試報告 → 畫面測試 → 開啟圖文報告</span>
+        <span class="badge green">真實執行證據</span>
+      </div>
+      <div class="mock-body">
+
+        <!-- View 1: Report -->
+        <div id="preview-report">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--line)">
+            <div>
+              <strong style="color:#fff;font-size:14px">登入成功後顯示會員首頁</strong>
+              <span class="badge green" style="margin-left:6px">PASSED · 通過</span>
+            </div>
+            <span class="muted" style="font-size:12px">耗時 1.2s · Chromium</span>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #21262d;font-size:12px">
+            <span><strong>步驟 1.</strong> 開啟登入頁面</span>
+            <span class="badge green">210ms · HTTP 200</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #21262d;font-size:12px">
+            <span><strong>步驟 2.</strong> 輸入帳號密碼並點擊登入</span>
+            <span class="badge green">380ms · POST 200</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #21262d;font-size:12px">
+            <span><strong>步驟 3.</strong> 核對會員首頁狀態</span>
+            <span class="badge green">160ms · 斷言通過</span>
+          </div>
+
+          <!-- Mock Screenshot -->
+          <div class="screen-mock">
+            <span class="badge blue" style="margin-bottom:8px;display:inline-block">高解析操作截圖 (web-test fixture 自動捕獲)</span>
+            <div class="screen-card">
+              <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:8px">
+                <strong style="font-size:12px">會員中心</strong>
+                <span class="badge green">已登入</span>
+              </div>
+              <h3 style="font-size:16px;color:#fff;margin-bottom:4px">歡迎回來，測試會員 小明</h3>
+              <p class="muted" style="font-size:12px;margin-bottom:10px">帳號：demo_user · 一般會員</p>
+              <div style="display:flex;gap:6px">
+                <span class="badge">我的訂單 (2)</span>
+                <span class="badge">個人資料</span>
+                <span class="badge">登出</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11px;color:var(--muted)">
+            <span>網絡安全診斷：敏感資訊已自動遮蔽 · 0 錯誤</span>
+            <span>單檔獨立 HTML · 離線直接分享</span>
+          </div>
+        </div>
+
+        <!-- View 2: Tracking Table -->
+        <div id="preview-tracking" hidden>
+          <div style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+            <strong style="font-size:13px;color:#fff">功能地圖 → 測試清單</strong>
+            <span class="badge blue">覆蓋追蹤</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>功能與案例名稱</th>
+                  <th>品質狀態</th>
+                  <th>腳本關聯</th>
+                  <th>最近執行結果</th>
+                  <th>版本比對</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>登入成功後顯示會員首頁</strong></td>
+                  <td><span class="badge green">無提醒</span></td>
+                  <td><code>login.spec.ts</code></td>
+                  <td><span class="badge green">上次通過</span></td>
+                  <td><span class="badge">相符</span></td>
+                </tr>
+                <tr>
+                  <td><strong>登入取消後留在登入頁</strong></td>
+                  <td><span class="badge yellow">待補邊界預期</span></td>
+                  <td>未連結</td>
+                  <td><span class="muted">未執行</span></td>
+                  <td><span class="muted">無報告</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- View 3: Plans -->
+        <div id="preview-plans" hidden>
+          <div style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+            <strong style="font-size:13px;color:#fff">測試流程 → 結構化計畫</strong>
+            <span class="badge">原始規格</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>步驟</th>
+                  <th>操作說明</th>
+                  <th>使用資料</th>
+                  <th>預期斷言</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>1. 開啟頁面</td>
+                  <td>進入登入入口</td>
+                  <td>測試環境網址</td>
+                  <td>登入標題與輸入框可見</td>
+                </tr>
+                <tr>
+                  <td>2. 提交登入</td>
+                  <td>輸入帳號並送出</td>
+                  <td>授權測試帳號</td>
+                  <td>API 回應成功，導向會員首頁</td>
+                </tr>
+                <tr>
+                  <td>3. 驗證身分</td>
+                  <td>核對會員名稱</td>
+                  <td>當前 Session</td>
+                  <td>看見「測試會員 小明」</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Troubleshooting Details -->
+    <details>
+      <summary>初次使用如果畫面還是空的？（排查指南）</summary>
+      <p class="muted" style="margin:6px 0 0;font-size:12px">
+        1. <b>看不到案例？</b> 確認 AI 已寫入當前測試專案的 <code>test-cases/catalog.json</code>，按右上「重新讀取」。<br>
+        2. <b>看不到報告？</b> 網站不提供在線執行，請在終端執行 <code>npm run test:ui</code> 後回網站按重新整理。
+      </p>
+    </details>
+
+    <details>
+      <summary>測試失敗了？請 AI 查因專用 Prompt（展開複製）</summary>
+      <div style="padding-top:6px">
+        <pre class="prompt-pre" id="prompt-fail">請讀剛才這次的 HTML 報告與對應案例／腳本。
+先說明失敗在哪一步、已完成什麼、後續哪些沒驗證。
+對照前端來源、操作證據截圖及網絡安全診斷找原因。
+原因不確定請列出缺少的證據，不要猜。
+不要放寬斷言、改預期或重送寫入來讓它通過。
+先提出修正方案，再說明需要重跑的範圍。</pre>
+        <button class="btn-primary" data-copy="prompt-fail">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 9h10v11H9V9Zm-4 6H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>
+          複製查因 Prompt
+        </button>
+        <div class="copy-msg" aria-live="polite"></div>
+      </div>
+    </details>
+
+    <!-- Astryx Banner Pro-tip -->
+    <div class="astryx-banner">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
+      <div>
+        <strong>實戰提示：</strong>
+        <span>失敗時嚴禁私自放寬斷言；單檔 HTML 報告零依賴，可直接郵寄或傳給團隊查閱。</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Bottom Navigation -->
+  <footer class="bottom-bar">
+    <button id="prev" disabled>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M19 12H5m6-6-6 6 6 6"/></svg>
+      上一步
+    </button>
+    <span id="progress" class="muted" style="font-size:13px" role="status">1 / 5</span>
+    <button id="next" class="btn-primary" style="width:auto">
+      下一步：AI 規劃案例
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+    </button>
+    <span id="finish" hidden>已到最後一步</span>
+  </footer>
+
+  <p class="footer-text">所有範例名稱與結果皆為 Mock 模擬示意。實際操作截圖直接內嵌 HTML，無任何外部圖檔依賴。</p>
+</main>
+
+<script>
+const tabs = [...document.querySelectorAll('[role="tab"]')];
+const panels = [...document.querySelectorAll('.panel')];
+let current = 0;
+
+function showStep(index, focus = false) {
+  index = Math.max(0, Math.min(4, index));
+  current = index;
+  tabs.forEach((tab, i) => {
+    const isSelected = i === index;
+    tab.setAttribute('aria-selected', String(isSelected));
+    tab.tabIndex = isSelected ? 0 : -1;
+    panels[i].hidden = !isSelected;
+  });
+
+  const nextNames = ['', 'AI 規劃案例', 'AI 實作腳本', '執行測試', '查看結果'];
+  document.querySelector('#prev').disabled = index === 0;
+  document.querySelector('#next').hidden = index === 4;
+  document.querySelector('#finish').hidden = index !== 4;
+  document.querySelector('#next').textContent = index === 4 ? '教學結束' : '下一步：' + nextNames[index + 1];
+  document.querySelector('#progress').textContent = `${index + 1} / 5`;
+
+  if (focus) tabs[index].focus();
+}
+
+tabs.forEach((tab, i) => {
+  tab.addEventListener('click', () => showStep(i));
+  tab.addEventListener('keydown', event => {
+    let next;
+    if (event.key === 'ArrowRight') next = (i + 1) % 5;
+    if (event.key === 'ArrowLeft') next = (i + 4) % 5;
+    if (event.key === 'Home') next = 0;
+    if (event.key === 'End') next = 4;
+    if (next !== undefined) {
+      event.preventDefault();
+      showStep(next, true);
+    }
+  });
+});
+
+document.querySelector('#prev').addEventListener('click', () => showStep(current - 1, true));
+document.querySelector('#next').addEventListener('click', () => showStep(current + 1, true));
+
+const planPrompt=document.getElementById('prompt-plan');
+const originalPlan=planPrompt.textContent;
+document.querySelectorAll('[data-case-type]').forEach(button=>button.addEventListener('click',()=>{
+ const api=button.dataset.caseType==='api';
+ document.querySelectorAll('[data-case-type]').forEach(item=>item.setAttribute('aria-pressed',String(item===button)));
+ planPrompt.textContent=api?'請先讀 AGENTS.md、knowledge/README.md，使用 skills/plan-test-cases/SKILL.md。\n我要測「查詢自己的會員資料」。\n請規劃 API 案例（target: api），含成功、未授權及適用異常情境。\n寫入 test-cases/catalog.json，保留既有功能 ID。\n每步寫清參數、回應及業務預期，缺權限或規則先問我。\n本次只寫案例，不送產品請求。':originalPlan;
+ document.getElementById('case-type-hint').textContent=api?'target: api · 寫請求、回應與業務預期':'target: web · 寫畫面操作與 DOM 預期';
+}));
+document.querySelectorAll('[data-prepare]').forEach(button=>button.addEventListener('click',()=>{
+const key=button.dataset.prepare;
+document.querySelectorAll('[data-prepare]').forEach(item=>item.setAttribute('aria-pressed',String(item===button)));
+['setup','knowledge','source','features'].forEach(id=>document.getElementById('prepare-'+id).hidden=id!==key);
+document.getElementById('prepare-title').textContent={setup:'工作區設定',knowledge:'專案知識',source:'前端程式碼分析',features:'功能地圖'}[key];
+document.getElementById('prepare-caption').textContent={setup:'左下工作區設定 → 選 AI → 指定前端與測試專案。',knowledge:'專案知識 → 新增知識 → 上傳 PRD／業務文件。',source:'前端程式碼分析 → 分析前端 → 補齊缺少腳本。',features:'功能地圖 → AI 分析功能 → 等待完成後閱讀。'}[key];
+}));
+// Copy Prompt
+document.querySelectorAll('[data-copy]').forEach(button => {
+  button.addEventListener('click', async () => {
+    const text = document.getElementById(button.dataset.copy).textContent;
+    const msg = button.parentElement.querySelector('.copy-msg');
+    try {
+      await navigator.clipboard.writeText(text);
+      if (msg) msg.textContent = '已複製到剪貼簿，請貼至 AI 對話中。';
+    } catch {
+      if (msg) msg.textContent = '請手動選取上方文字複製。';
+    }
+  });
+});
+
+// View Switcher in Step 5
+document.querySelectorAll('[data-view]').forEach(button => {
+  button.addEventListener('click', () => {
+    const view = button.dataset.view;
+    document.querySelectorAll('[data-view]').forEach(item => {
+      item.setAttribute('aria-pressed', String(item === button));
+    });
+    ['plans', 'tracking', 'report'].forEach(id => {
+      const el = document.getElementById('preview-' + id);
+      if (el) el.hidden = id !== view;
+    });
+    const titles = {
+      report: '測試報告 → 畫面測試 → 開啟圖文報告',
+      tracking: '功能地圖 → 測試清單 (追蹤覆蓋與版本相符)',
+      plans: '測試流程 → 結構化計畫 (原始規格)'
+    };
+    document.getElementById('preview-title').textContent = titles[view] || '';
+  });
+});
+</script>
+</body>
+</html>

@@ -12,13 +12,13 @@ import { apiModuleSource, apiTestSource } from './api-source.mjs';
 import { isReportFilename } from '../../test-project/framework/report-name.mjs';
 import { knowledgeStore } from './knowledge.mjs';
 import { pickDirectory } from './directory-picker.mjs';
-import { setupConfig, validateSource, persistSetup, ensureEnvIgnored } from './setup.mjs';
+import { setupConfig, validateSource, persistSetup, ensureEnvIgnored, validateAiSettings, saveAiSettings } from './setup.mjs';
 import { scriptSync } from './script-sync.mjs';
 import { catalogStore } from './catalog.mjs';
 import { prepareUploads } from './knowledge-upload.mjs';
 import { analyzeKnowledgeUploads } from './knowledge-analysis.mjs';
 import { frontendFeatureStore } from './frontend-features.mjs';
-import { aiJobs } from './ai-jobs.mjs';
+import { aiJobs, resolveCliStatus, inspectAiCli, testAiCli } from './ai-jobs.mjs';
 import { featureAiPrompt, saveFeatureAiResult } from './ai-analysis.mjs';
 import { readReportSettings } from '../../test-project/support/report-options.mjs';
 import { createAndroidHost } from './android-host.mjs';
@@ -160,6 +160,33 @@ export function createWorkspace(config, options = {}) {
         return { configured: true, initialized: true };
       });
     },
+    async inspectAi(input = {}) {
+      const validated = await validateAiSettings({
+        aiProvider: input.aiProvider !== undefined ? input.aiProvider : (config.aiProvider || 'codex'),
+        aiCli: input.aiCli !== undefined ? input.aiCli : config.aiCli,
+      });
+      const candidate = { ...config, ...validated };
+      const result = await (options.aiInspector || inspectAiCli)(candidate);
+      if (result?.providers) return result;
+      const entry = { models: [], supportsImages: (result?.provider || 'codex') === 'codex', label: 'Codex', ...result };
+      return { ...entry, providers: { [entry.provider || 'codex']: entry } };
+    },
+    async testAi(input = {}) {
+      const validated = await validateAiSettings({
+        aiProvider: input.aiProvider !== undefined ? input.aiProvider : (config.aiProvider || 'codex'),
+        aiCli: input.aiCli !== undefined ? input.aiCli : config.aiCli,
+        aiModel: input.aiModel !== undefined ? input.aiModel : config.aiModel,
+      });
+      return testAiCli({ ...config, ...validated }, options.aiRunner ? { runner: options.aiRunner } : {});
+    },
+    async saveAiSettings(input = {}) {
+      return exclusive(async () => {
+        if (jobs.get()?.status === 'running') throw new Error('請先等待或取消 AI 工作，再修改 CLI 設定。');
+        const saved = await saveAiSettings(config, input);
+        Object.assign(config, saved);
+        return this.describe();
+      });
+    },
     async knowledge() { await ready(); return knowledgeStore(config).list(); },
     async aiStatus(id) { await ready(); return jobs.get(id); },
     async cancelAi(id) { await ready(); return jobs.cancel(id); },
@@ -169,7 +196,7 @@ export function createWorkspace(config, options = {}) {
       return jobs.start('features',config,async context=>{
         await this.prepareFrontendFeatures();
         const input=await featureAiPrompt(config);context.stage(`${input.scope.mode==='full'?'完整':'增量'}分析功能：${input.scope.evidence.pages.length} 個頁面`);
-        const result=input.scope.mode==='unchanged'?null:await context.run(input.prompt);
+        const result=input.scope.mode==='unchanged'?null:await context.run(input.prompt, { schema: input.schema });
         if(context.signal.aborted)throw new Error('工作已取消。');
         return exclusive(async()=>{
           if(context.signal.aborted)throw new Error('工作已取消。');
@@ -223,8 +250,21 @@ export function createWorkspace(config, options = {}) {
         onboardingCompleted = knowledge.onboardingCompleted === true;
         knowledgeCount = knowledge.documents.filter(row=>!row.missing).length;
       }
+      const resolved = resolveCliStatus(config);
       return { sourceRoot: config.sourceRoot, projectRoot: config.projectRoot, analysisDir: config.analysisDir,
-        apiDir: config.apiDir, reportDir: config.reportDir, configured: !!config.sourceRoot && !!config.projectRoot, initialized, onboardingCompleted, knowledgeCount };
+        apiDir: config.apiDir, reportDir: config.reportDir, configured: !!config.sourceRoot && !!config.projectRoot, initialized, onboardingCompleted, knowledgeCount,
+        ai: {
+          provider: resolved.provider,
+          providerLabel: resolved.label,
+          supportsImages: resolved.supportsImages,
+          cliConfigured: resolved.cliConfigured,
+          cliResolved: resolved.cliResolved,
+          installed: resolved.installed,
+          model: config.aiModel || '',
+          providerSource: config.aiProviderSource || 'default',
+          cliSource: config.aiCliSource || (resolved.cliConfigured ? 'local' : 'default'),
+          modelSource: config.aiModelSource || (config.aiModel ? 'local' : 'default'),
+        } };
     },
     async initialize() {
       return exclusive(async () => {

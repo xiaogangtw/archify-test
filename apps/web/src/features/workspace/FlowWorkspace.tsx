@@ -4,10 +4,10 @@ import { settings, operation } from './client';
 import type { LocalConfig } from './client';
 import { factorLabels, flowCategory } from './catalog';
 import type { Catalog, TestIntent } from './catalog';
+import { WorkspaceToast } from './WorkspaceToast';
 import {
   ActionButton,
   Badge,
-  Banner,
   EmptyState,
   PageHeader,
   SegmentedGroup,
@@ -123,12 +123,10 @@ export function FlowWorkspace({ navigation }: { navigation: ReactNode }) {
         }
       />
 
-      {error && (
-        <Banner tone="danger" className="mb-5">
-          {error}
-          {catalog ? ' 原表格已保留。' : ''}
-        </Banner>
-      )}
+      <WorkspaceToast open={!!error} tone="danger" role="alert" onDismiss={() => setError('')}>
+        {error}
+        {catalog ? ' 原表格已保留。' : ''}
+      </WorkspaceToast>
       {config && !config.initialized && (
         <EmptyState icon="settings" title="請先從工作區設定連接測試專案。" />
       )}

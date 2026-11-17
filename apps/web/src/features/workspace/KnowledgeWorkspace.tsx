@@ -11,6 +11,7 @@ import { KnowledgeImport } from './KnowledgeImport';
 import { WorkspaceDialog } from './WorkspaceDialog';
 import { useAiJob } from './useAiJob';
 import { AiJobStatus } from './AiJobStatus';
+import { WorkspaceToast } from './WorkspaceToast';
 import {
   ActionButton,
   Badge,
@@ -49,7 +50,7 @@ export function KnowledgeWorkspace({ navigation }: { navigation: ReactNode }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const ai = useAiJob(config);
+  const ai = useAiJob(config, 'knowledge');
 
   useEffect(() => {
     setSourceView(undefined);
@@ -228,18 +229,15 @@ export function KnowledgeWorkspace({ navigation }: { navigation: ReactNode }) {
         }
       />
 
-      {!showImport && (
-        <AiJobStatus
-          job={ai.job?.kind === 'knowledge' ? ai.job : undefined}
-          error={ai.error}
-          onCancel={() => void ai.cancel()}
-        />
-      )}
-      {error && (
-        <Banner tone="danger" className="mb-5">
-          {error}
-        </Banner>
-      )}
+      <AiJobStatus
+        job={ai.job?.kind === 'knowledge' ? ai.job : undefined}
+        error={ai.error}
+        onCancel={() => void ai.cancel()}
+        onDismiss={ai.dismiss}
+      />
+      <WorkspaceToast open={!!error} tone="danger" role="alert" onDismiss={() => setError('')}>
+        {error}
+      </WorkspaceToast>
       {config && !config.initialized && (
         <EmptyState icon="settings" title="請先開啟「工作區設定」。" />
       )}
@@ -277,6 +275,7 @@ export function KnowledgeWorkspace({ navigation }: { navigation: ReactNode }) {
             <Surface id="knowledge-import-panel" aria-label="補充知識">
               <KnowledgeImport
                 config={config}
+                ai={ai}
                 onBusy={setImportBusy}
                 onImported={() => void reload()}
               />

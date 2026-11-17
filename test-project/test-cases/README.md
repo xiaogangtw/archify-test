@@ -4,6 +4,10 @@ catalog.json 是唯一案例文本來源，網站「測試流程」表格與功�
 
 ## 案例格式
 
+互動引用的檔案須同時列於所屬 feature.sources，沿用來源版本檢查。缺少基準或來源已變動時不套用逐步結果；外部工具不可捏造來源 hash。
+
+需要序列圖的步驟可加 `interaction: { from: "前端", to: "會員 API", source: { path: "src/member.ts", line: 42 } }`，from／to 各最多 80 字，source 為安全前端相對程式檔案與正整數行號。每列只描述有證據的一個互動，不猜測後端內部流程；回應另列步驟，無證據不填。網站於功能地圖的案例詳情按需展開序列圖；舊案例保持相容。測試以唯一且與 action 完全相同的 test.step 名稱對應，只有版本相符與唯一對應才顯示逐步結果；未對應不代表未執行，不保存 token 值或敏感資料。
+
 schemaVersion 固定為 1；features 保存穩定 id、name、sources（可空，內容為相對前端路徑及 line）。cases 必填 id、featureId、title、kind（api／flow）、purpose、preconditions、data、expected、knowledgeIds、questions（text／answer）。識別碼英文字母開頭、英數／底線／連字號，最多 80 字。knowledgeIds 為知識索引 UUID，不是名稱。script 可指定 tests/ 下唯一 .spec.ts，腳本使用 archify-case annotation 對應案例 ID。
 
 規劃支援 `steps`（最多 100 項 `{ action, data?, expected }`，每欄精簡填寫；純輸入步驟的 `expected` 可留空 `""`，驗證點與總體 `expected` 再寫明確結果）、`cleanup`（建議一句交代如「不需清理」／「刪除本輪帳號」）、`target`（`api`／`web`／`mobile`／`mixed`）、選填 `factor`（`positive`／`negative`／`boundary`／`security`／`error`）與選填 `decisionTable`（最多 100 列 `{ point, input, expected }`）。案例呈現以表格矩陣（「案例／功能｜測試步驟｜使用資料｜預期結果」）為主：各欄位應簡短可掃描，來源檔案位置保留在 `feature.sources` 或 `knowledge/`，不把長篇規格、程式路徑列表或日期說明塞進 `preconditions`、`cleanup` 或每個步驟中。
@@ -39,3 +43,7 @@ API 與畫面案例共用 test-cases/catalog.json，每個新增或修改的案�
 | 含畫面的跨平台流程 | flow | mixed | 依實際 runner 指定唯一 spec |
 
 API 流程即使驗證供畫面使用的資料，也仍是 target: api；只有實際操作或斷言畫面才歸畫面流程。kind 表達單支或組合，不代表平台。未知平台先詢問並保留問題，不靠名稱猜測或為了分類建立假測試。舊案例缺 target 時網站僅依路徑或 kind: api 推定，否則列待分類；AI 修改舊案例時依證據補齊 target，保留 ID、人工答案、斷言與其他欄位。報告使用的 android 與 testType 是另一份契約，不寫入 catalog.target。
+
+## 唯讀品質檢查
+
+使用 npm run cases:check -- --all 檢查全部案例，或傳單一案例 ID。warnings 提供模糊預期、資料占位、重複步驟、來源依據、清理與矩陣疑點的位置；僅供核對，不修改案例、不新增核准關卡。完整性 problems 才造成退出碼 1，品質提醒不阻擋。ready 不代表產品通過或矩陣每列已實作。既有外部專案不自動更新。

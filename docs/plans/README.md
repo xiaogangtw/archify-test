@@ -13,6 +13,8 @@
 - [倉庫瘦身、功能地圖強化與工程化優化（P0–P3）](2026-11-11-repo-optimization-p0-p3.md)：進行中；前端、框架、文件治理
 - [高可讀性案例格式、測試流程矩陣與多案例地圖排版](2026-11-11-readable-case-format-and-flow-views.md)：已完成；前端、本機服務、測試框架、AI 指引、文件治理
 - [新測試專案清空範本目錄並自動產生單支 API 草稿](2026-11-11-new-project-clean-catalog-and-api-drafts.md)：已完成；本機服務、測試專案初始化、文件治理
+- [初始設定前置 AI CLI、全面 Toast 通知與結構化 JSON 修復](2026-11-11-cli-step-toast-and-ai-json.md)：進行中；全端本機服務（Node.js）、前端 UI／UX（React + TypeScript）、AI CLI 整合、文件治理
+- [功能地圖層級、導覽與測試清單 UX 優化](2026-11-11-catalog-ux-refinement.md)：進行中；前端、設計系統、文件治理
 - [導入 Astryx Design System 與全面重整工作區 UI/UX](2026-11-11-astryx-design-system-uiux.md)：已完成；前端、設計系統、文件治理
 - [畫面測試撰寫來源與資料依據](2026-11-10-ui-authoring-source-evidence.md)：已完成；測試框架、文件治理
 - [單檔圖文報告與完整歷史](2026-11-10-single-file-report-history.md)：已完成；前端、文件
@@ -81,6 +83,10 @@
 
 - [保留指定 Android 模擬器並核對 LINE](2026-11-08-retain-line-emulators.md)：已完成；Android、本機環境
 
+### 全端本機服務（Node.js）、前端 UI／UX（React + TypeScript）、AI CLI 整合、文件治理
+
+- [初始設定前置 AI CLI、全面 Toast 通知與結構化 JSON 修復](2026-11-11-cli-step-toast-and-ai-json.md)：進行中；全端本機服務（Node.js）、前端 UI／UX（React + TypeScript）、AI CLI 整合、文件治理
+
 ### 前端
 
 - [執行紀錄批次報告列對齊](2026-11-03-report-row-alignment.md)：進行中；前端
@@ -101,6 +107,10 @@
 
 - [Appium 報告失敗證據](2026-11-03-appium-report-errors.md)：進行中；前端、API、Android
 
+### 前端、API、測試框架、文件治理
+
+- [案例互動順序與失敗定位](2026-11-12-case-sequence-reader.md)：已完成；前端、API、測試框架、文件治理
+
 ### 前端、文件
 
 - [單檔圖文報告與完整歷史](2026-11-10-single-file-report-history.md)：已完成；前端、文件
@@ -113,6 +123,10 @@
 ### 前端、本機 API
 
 - [測試腳本數量與清單](2026-11-09-test-script-inventory.md)：已完成；前端、本機 API
+
+### 前端、本機 API、文件治理
+
+- [測試清單追蹤表](2026-11-13-test-tracking-table.md)：已完成；前端、本機 API、文件治理
 
 ### 前端、本機服務、AI 整合
 
@@ -171,11 +185,16 @@
 
 ### 前端、設計系統、文件治理
 
+- [功能地圖層級、導覽與測試清單 UX 優化](2026-11-11-catalog-ux-refinement.md)：進行中；前端、設計系統、文件治理
 - [導入 Astryx Design System 與全面重整工作區 UI/UX](2026-11-11-astryx-design-system-uiux.md)：已完成；前端、設計系統、文件治理
 
 ### 文件治理
 
 - [Agent 規則中文化與文件整理](2026-11-02-agent-documentation-governance.md)：已完成；文件治理
+
+### 文件治理、操作教學
+
+- [簡明圖像操作教學](2026-11-13-complete-user-guide.md)：已完成；文件治理、操作教學
 
 ### 文件治理、架構
 
@@ -193,6 +212,10 @@
 ### 本機設定、安全
 
 - [測試專案本機環境設定](2026-11-09-project-local-environment.md)：已完成；本機設定、安全
+
+### 框架、文件治理
+
+- [案例品質檢查](2026-11-13-case-quality-check.md)：已完成；框架、文件治理
 
 ### 框架治理、文件治理、測試資料隔離、Git 清理
 
